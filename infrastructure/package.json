@@ -1,0 +1,40 @@
+{
+  "name": "pricofy-geocode-es-infrastructure",
+  "version": "1.0.0",
+  "description": "CDK infrastructure for Pricofy Geocode ES",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "cdk": "cdk",
+    "bootstrap": "cdk bootstrap",
+    "deploy:dev": "cdk deploy --all --context environment=dev --profile pricofy-dev --require-approval never",
+    "deploy:prod": "cdk deploy --all --context environment=prod --profile pricofy-prod --require-approval never",
+    "destroy:dev": "cdk destroy --all --context environment=dev --profile pricofy-dev --force",
+    "diff:dev": "cdk diff --all --context environment=dev --profile pricofy-dev",
+    "synth:dev": "cdk synth --all --context environment=dev",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@types/archiver": "^7.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.10.6",
+    "@types/tar": "^6.1.13",
+    "aws-cdk": "^2.117.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "aws-cdk-lib": "^2.117.0",
+    "axios": "^1.6.0",
+    "constructs": "^10.3.0",
+    "source-map-support": "^0.5.21",
+    "tar": "^7.5.2"
+  },
+  "overrides": {
+    "glob": ">=11.0.4"
+  }
+}
+

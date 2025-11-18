@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build
+dist/
+*.js
+*.d.ts
+*.js.map
+*.tsbuildinfo
+!jest.config.js
+
+# CDK
+infrastructure/cdk.out/
+infrastructure/*.js
+!infrastructure/jest.config.js
+infrastructure/*.d.ts
+
+# GeoNames (downloaded files, not the generated JSON)
+scripts/ES.txt
+scripts/ES.zip
+scripts/readme.txt
+
+# Tests
+coverage/
+.nyc_output/
+*.lcov
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+

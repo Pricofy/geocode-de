@@ -1,0 +1,131 @@
+import * as cdk from 'aws-cdk-lib';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as logs from 'aws-cdk-lib/aws-logs';
+import * as path from 'path';
+import { Construct } from 'constructs';
+
+export interface GeocodeEsStackProps extends cdk.StackProps {
+  environment: 'dev' | 'prod';
+}
+
+/**
+ * Pricofy Geocode ES Stack
+ * 
+ * Provides a single Lambda function for all Spanish postal code operations:
+ * - geocode-by-postal
+ * - reverse-geocode
+ * - validate-postal
+ * - validate-municipio
+ * - autocomplete-postal
+ * - autocomplete-municipio
+ * 
+ * All operations are routed internally by the handler based on the 'operation' parameter.
+ * 
+ * The function is PRIVATE (no Function URLs, no API Gateway).
+ * Only invokable by pricofy-location-service via IAM role.
+ * 
+ * Security:
+ * - No public endpoints
+ * - IAM-based invocation only
+ * - Resource-Based Policies configured for pricofy-location-service
+ * - Invoked by pricofy-location-service as orchestrator
+ * 
+ * Note: Resource-Based Policies are configured via pricofy-infra stack
+ * to avoid circular dependencies. This stack exports function ARN,
+ * and pricofy-infra grants permissions to pricofy-location-service role.
+ */
+export class GeocodeEsStack extends cdk.Stack {
+  public readonly geocodeFunction: lambda.Function;
+
+  constructor(scope: Construct, id: string, props: GeocodeEsStackProps) {
+    super(scope, id, props);
+
+    // ===========================================
+    // Lambda: geocode (routing handler)
+    // ===========================================
+    
+    // Create log group explicitly to avoid deprecated logRetention
+    const logGroup = new logs.LogGroup(this, 'GeocodeLogGroup', {
+      logGroupName: `/aws/lambda/pricofy-geocode-es-${props.environment}`,
+      retention: logs.RetentionDays.ONE_MONTH, // GDPR compliance (30 days)
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+    
+    this.geocodeFunction = new lambda.Function(this, 'GeocodeFunction', {
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../dist')),
+      handler: 'handlers/geocode.handler',
+      runtime: lambda.Runtime.NODEJS_20_X,
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 256, // 256MB is sufficient for static postal code operations
+      environment: {
+        ENVIRONMENT: props.environment,
+        NODE_ENV: 'production',
+      },
+      description: 'Spanish postal code geocoding operations (routing handler)',
+      functionName: `pricofy-geocode-es-${props.environment}`,
+      logGroup: logGroup,
+      tracing: lambda.Tracing.ACTIVE, // X-Ray tracing for observability
+    });
+
+    // ===========================================
+    // Exports (for pricofy-location-service to import)
+    // ===========================================
+    
+    // Export function ARN for pricofy-location-service to configure permissions
+    new cdk.CfnOutput(this, 'GeocodeEsArn', {
+      value: this.geocodeFunction.functionArn,
+      exportName: `Pricofy-GeocodeEsArn-${props.environment}`,
+      description: 'ARN of geocode-es Lambda function',
+    });
+
+    new cdk.CfnOutput(this, 'GeocodeEsName', {
+      value: this.geocodeFunction.functionName,
+      exportName: `Pricofy-GeocodeEsName-${props.environment}`,
+      description: 'Name of geocode-es Lambda function',
+    });
+
+    // ===========================================
+    // Security Notice
+    // ===========================================
+    
+    new cdk.CfnOutput(this, 'SecurityNotice', {
+      value: 'Resource-Based Policies configured via pricofy-infra stack',
+      description: 'Lambda function is private - only invokable by pricofy-location-service IAM role',
+    });
+
+    // ===========================================
+    // Tags
+    // ===========================================
+    
+    cdk.Tags.of(this).add('Project', 'Pricofy');
+    cdk.Tags.of(this).add('Environment', props.environment);
+    cdk.Tags.of(this).add('Component', 'Geocode-ES');
+    cdk.Tags.of(this).add('ManagedBy', 'CDK');
+  }
+}
+
+/**
+ * Security Configuration Helper
+ * 
+ * For pricofy-infra to grant invocation permissions:
+ * 
+ * ```typescript
+ * // In pricofy-infra stack:
+ * import { Fn } from 'aws-cdk-lib';
+ * 
+ * const geocodeEsArn = Fn.importValue(`Pricofy-GeocodeEsArn-${environment}`);
+ * 
+ * // Grant pricofy-location-service role permission to invoke
+ * locationServiceRole.addToPolicy(new iam.PolicyStatement({
+ *   actions: ['lambda:InvokeFunction'],
+ *   resources: [geocodeEsArn],
+ * }));
+ * ```
+ * 
+ * This approach:
+ * - Avoids circular dependencies (geocode-es doesn't need to know about location-service)
+ * - Centralizes access control in pricofy-infra
+ * - Follows AWS best practices for cross-stack references
+ * - Allows principle of least privilege (only location-service role has access)
+ */
+

@@ -1,0 +1,208 @@
+# Cursor AI Rules Configuration - Pricofy Location Service
+# These rules guide the AI assistant's behavior when working on code
+
+## Project-Specific Context
+
+### Service Overview
+- **Purpose**: Location detection and geocoding microservice for Pricofy
+- **Tech Stack**: TypeScript, Node.js 20.x, AWS Lambda, MaxMind GeoLite2, CDK
+- **Architecture**: Hexagonal (handlers → services → providers)
+- **Key Features**: IP geolocation (MaxMind), Spanish postal code geocoding (static DB)
+
+### Providers
+- **MaxMind**: IP → city/country/coordinates (GeoLite2-City database)
+- **PostalCode**: Spanish postal codes → coordinates (static JSON database, 11K entries)
+- **NO Nominatim**: Deprecated and removed - use PostalCode provider instead
+
+### Data Files
+- `src/data/postal-codes-es.json`: Static database of 11,150 Spanish postal codes
+- Must be copied to `dist/data/` during build (handled by Makefile)
+
+## File Operations
+- Don't ask for confirmation on file edits unless the file is outside the project scope
+- Always prefer editing existing files over creating new ones unless explicitly required
+
+## Code Quality Standards
+
+### Documentation
+- Code must be well documented, including:
+  - Class documentation with @description
+  - Function/method documentation with @param, @returns, @throws
+  - Variable documentation with meaningful descriptions
+  - Internal line comments explaining complex logic
+- Use JSDoc for TypeScript
+- Always write documentation and comments in English
+
+### Code Structure
+- Follow hexagonal architecture:
+  - **Handlers** (presentation): Lambda entry points, request/response formatting
+  - **Services** (application): Business logic, orchestration
+  - **Providers** (infrastructure): MaxMind, PostalCode adapters
+  - **Types** (domain): Interfaces, errors, constants
+  - **Utils** (shared): Logger, CORS, rate-limiter
+- Keep functions reasonably sized and focused on a single responsibility
+- Break down complex functions into smaller, manageable units
+- Maintain clear separation of concerns
+
+### Error Handling
+- Use custom error classes from `src/types/errors.ts`:
+  - `LocationError` (base)
+  - `ProviderUnavailableError` (MaxMind unavailable)
+  - `InvalidCoordinatesError` (invalid lat/lon)
+  - `PostalCodeNotFoundError` (postal code not found)
+  - `RateLimitExceededError` (rate limit exceeded)
+  - `ThirdPartyAPIError` (external API failures)
+- Always use structured logging with `Logger` utility (never console.log)
+- Log errors with full context: `Logger.error('Component', 'message', error, { metadata })`
+
+### Logging
+- **ALWAYS** use `Logger` utility from `src/utils/logger.ts`
+- **NEVER** use `console.log`, `console.error`, etc. directly
+- Use appropriate log levels:
+  - `Logger.debug()`: Detailed debugging (only when LOG_LEVEL=DEBUG)
+  - `Logger.info()`: Important state changes, successful operations
+  - `Logger.warn()`: Recoverable issues, fallback scenarios
+  - `Logger.error()`: Failures, exceptions, critical issues
+- Include contextual metadata in logs
+
+### Constants
+- Use constants from `src/types/constants.ts`:
+  - `MAXMIND_DB_PATH`, `DEFAULT_ACCURACY_RADIUS`, `POSTAL_CODE_REGEX`, etc.
+- Never use magic numbers or strings
+- Add new constants to `constants.ts` if needed
+
+## Architecture Principles
+
+### Hexagonal Architecture
+- **Handlers Layer**: Lambda entry points, request validation, response formatting
+- **Services Layer**: Business logic (GeolocationService, PostalCodeService)
+- **Providers Layer**: External adapters (MaxMindProvider, PostalCodeProvider)
+- **Types Layer**: Domain types, errors, constants
+- **Utils Layer**: Shared utilities (logger, CORS, rate-limiter)
+
+### Dependency Rule
+- Handlers depend on Services
+- Services depend on Providers (via interfaces)
+- Providers implement interfaces defined in Services
+- Types are independent (no dependencies)
+- Utils are independent (no dependencies)
+
+### Provider Interfaces
+- All providers must implement interfaces (IMaxMindProvider, IPostalCodeProvider)
+- Services depend on interfaces, not concrete implementations
+- Enables easy testing and swapping implementations
+
+## Testing Strategy
+
+### Test Structure
+- Tests in `test/` directory (NOT `src/__tests__/`)
+- Mirror source structure: `test/handlers/`, `test/services/`, `test/providers/`, etc.
+- Coverage threshold: 80% global, 80% for handlers
+
+### Test Best Practices
+- Mock external dependencies (MaxMind Reader, file system)
+- Test error scenarios (provider unavailable, invalid input, etc.)
+- Use descriptive test names: `should detect location from IP successfully`
+- Follow Arrange-Act-Assert pattern
+
+## Build and Deployment
+
+### Build Process
+- Use `make build` (not `npm run build` directly)
+- Build process:
+  1. Compile TypeScript (`tsc`)
+  2. Copy postal codes database to `dist/data/`
+  3. Copy package.json to `dist/`
+  4. Install production dependencies in `dist/node_modules/`
+
+### Makefile Targets
+- `make install`: Install dependencies (app + infrastructure)
+- `make build`: Build Lambda package
+- `make test`: Run all tests
+- `make verify ENV=dev`: Verify deployment prerequisites
+- `make deploy ENV=dev`: Safe deployment (clean + test + deploy)
+- `make deploy-quick ENV=dev`: Quick deployment (skips clean/test)
+
+### Deployment
+- Always run `make verify` before deploying
+- Use `make deploy` for production (safe, includes tests)
+- Use `make deploy-quick` only for development iteration
+
+## Infrastructure
+
+### CDK Stacks
+- **PricofyMaxMindUpdaterStack**: Updater Lambda + EventBridge (weekly updates)
+- **PricofyLocationServiceStack**: Service Lambda functions (3 functions)
+- **PricofyLocationLayerStack**: MaxMind Layer (created by updater)
+
+### Lambda Functions
+- `detect-location`: IP → location (MaxMind)
+- `geocode-by-postal`: Postal code → coordinates (static DB)
+- `reverse-geocode`: Coordinates → postal code (static DB)
+- All functions are PRIVATE (IAM invocation only, no Function URLs)
+
+### MaxMind Layer
+- Created automatically by updater Lambda on first deployment
+- Updated weekly via EventBridge schedule
+- Path in Lambda: `/opt/nodejs/GeoLite2-City.mmdb`
+
+## Security
+
+### Secrets Management
+- MaxMind license key stored in SSM Parameter Store (`/pricofy/{env}/maxmind-license-key`)
+- Never hardcode secrets in code
+- Secrets fetched at runtime, not injected as environment variables
+
+### IAM Permissions
+- Lambda functions have minimal required permissions
+- No public endpoints (IAM invocation only)
+- Invoked by pricofy-api as secure proxy
+
+## Performance
+
+### Postal Code Database
+- Static JSON file: 11,150 entries, ~1.31 MB
+- Loaded once per Lambda container (cached in memory)
+- O(1) lookup for postal codes, O(n) search for municipalities
+
+### MaxMind Database
+- GeoLite2-City database (~70 MB)
+- Loaded from Lambda Layer (shared across invocations)
+- Cold start: ~200-500ms, Warm: <50ms
+
+## Code Style
+
+### Naming Conventions
+- camelCase for functions and variables
+- PascalCase for classes and interfaces
+- UPPER_SNAKE_CASE for constants
+- Descriptive names (no abbreviations)
+
+### TypeScript
+- Use strict mode (enabled in tsconfig.json)
+- Prefer interfaces over types for public APIs
+- Use type guards for runtime type checking
+- Avoid `any` - use `unknown` and type guards
+
+## Version Control
+
+### Git Workflow Rules
+- **NEVER perform a commit or push to git without asking first**
+- **NEVER skip hooks (--no-verify, --no-gpg-sign, etc.) unless explicitly requested**
+- **NEVER run destructive/irreversible git commands (force push, hard reset, etc.) unless explicitly requested**
+- **NEVER force push to main/master branches** - warn the user if requested
+- Always provide clear commit messages that explain the changes
+- Follow conventional commit format: `type(scope): description`
+
+## Language Requirements
+- All code, comments, documentation, logs, and commit messages must be in English
+- Exception messages and user-facing text should also be in English
+
+## Additional Guidelines
+- Think in terms of business value and user needs
+- Consider the total cost of ownership of solutions
+- Balance pragmatism with idealism
+- Know when to apply patterns and when they're overkill
+- Stay updated with industry best practices
+- Foster code that is easy to understand, modify, and extend
+

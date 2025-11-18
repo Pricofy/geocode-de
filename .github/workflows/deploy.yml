@@ -1,0 +1,156 @@
+# ========================================
+# Deploy Geocode ES Workflow
+# ========================================
+#
+# Purpose: Deploy the Spanish Geocoding Service Lambda to AWS via CDK
+#
+# Triggers:
+#   - Push to develop → Auto-deploy to DEV environment
+#   - Manual dispatch → Deploy to DEV or PROD (user choice)
+#
+# Environments:
+#   - dev  → Development (auto on push to develop)
+#   - prod → Production (manual dispatch only)
+#
+# AWS Authentication:
+#   Uses OIDC (OpenID Connect) with IAM roles for secure, keyless auth
+#   No long-lived credentials stored in GitHub Secrets
+#
+# Secrets Required:
+#   - AWS_ACCOUNT_ID_DEV  → AWS account for dev environment
+#   - AWS_ACCOUNT_ID_PROD → AWS account for prod environment
+#   - AWS_ROLE_ARN_DEV    → IAM role ARN for dev deployment
+#   - AWS_ROLE_ARN_PROD   → IAM role ARN for prod deployment
+#
+# ========================================
+
+name: Deploy Geocode ES
+
+on:
+  # Automatic deployment to dev when code is pushed to develop branch
+  push:
+    branches: [develop]
+  
+  # Manual deployment trigger via GitHub UI (allows choosing environment)
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy (dev or prod)'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+
+# Required permissions for OIDC authentication with AWS
+permissions:
+  id-token: write   # Required for requesting JWT from GitHub OIDC provider
+  contents: read    # Required for checking out the repository
+
+jobs:
+  deploy:
+    name: Deploy to AWS Lambda
+    runs-on: ubuntu-latest
+    
+    steps:
+      # ========================================
+      # Step 1: Checkout Repository
+      # ========================================
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ========================================
+      # Step 2: Determine Target Environment
+      # ========================================
+      - name: Determine environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" == "push" ]; then
+            echo "environment=dev" >> $GITHUB_OUTPUT
+            echo "account_id=${{ secrets.AWS_ACCOUNT_ID_DEV }}" >> $GITHUB_OUTPUT
+            echo "role_arn=${{ secrets.AWS_ROLE_ARN_DEV }}" >> $GITHUB_OUTPUT
+          else
+            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+            if [ "${{ inputs.environment }}" == "prod" ]; then
+              echo "account_id=${{ secrets.AWS_ACCOUNT_ID_PROD }}" >> $GITHUB_OUTPUT
+              echo "role_arn=${{ secrets.AWS_ROLE_ARN_PROD }}" >> $GITHUB_OUTPUT
+            else
+              echo "account_id=${{ secrets.AWS_ACCOUNT_ID_DEV }}" >> $GITHUB_OUTPUT
+              echo "role_arn=${{ secrets.AWS_ROLE_ARN_DEV }}" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      # ========================================
+      # Step 3: Setup Node.js Environment
+      # ========================================
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ========================================
+      # Step 4: Configure AWS Credentials (OIDC)
+      # ========================================
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ steps.env.outputs.role_arn }}
+          aws-region: eu-west-1
+
+      # ========================================
+      # Step 5: Verify Deployment Prerequisites
+      # ========================================
+      # Validates prerequisites before deployment:
+      #   - AWS CLI configured
+      #   - CDK Bootstrap complete
+      #   - GitHub OIDC provider configured
+      #   - GitHub Actions IAM role exists
+      - name: Verify deployment prerequisites
+        run: make verify ENV=${{ steps.env.outputs.environment }}
+
+      # ========================================
+      # Step 6: Build and Deploy Service
+      # ========================================
+      # Build and deploy process:
+      #   1. Clean: Removes all build artifacts
+      #   2. Install: Fresh dependency installation
+      #   3. Build: Compiles Lambda code + copies postal codes data
+      #   4. Deploy: Compiles CDK and deploys to AWS
+      #
+      # What gets deployed:
+      #   - Single Lambda function (pricofy-geocode-es-{env})
+      #   - IAM roles and policies
+      #   - CloudWatch log groups
+      #
+      # Data:
+      #   - 11,150 Spanish postal codes (static JSON, 1.31MB)
+      #   - No external dependencies
+      #   - No layers required
+      - name: Build Lambda package
+        run: make clean && make install && make build
+      
+      - name: Deploy Geocode ES to ${{ steps.env.outputs.environment }}
+        env:
+          CDK_DEFAULT_ACCOUNT: ${{ steps.env.outputs.account_id }}
+          CDK_DEFAULT_REGION: eu-west-1
+        run: make deploy-quick ENV=${{ steps.env.outputs.environment }}
+
+      # ========================================
+      # Step 7: Notify Deployment Status
+      # ========================================
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ Geocode ES deployed successfully to ${{ steps.env.outputs.environment }}"
+            echo "Complete process: clean → install → build → deploy"
+            echo ""
+            echo "📊 Deployed:"
+            echo "   - Single Lambda: pricofy-geocode-es-${{ steps.env.outputs.environment }}"
+            echo "   - 6 operations (geocode, reverse, validate x2, autocomplete x2)"
+            echo "   - 11,150 Spanish postal codes"
+          else
+            echo "❌ Geocode ES deployment failed"
+            exit 1
+          fi
