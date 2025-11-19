@@ -1,0 +1,14 @@
+{
+  "entryPoints": ["src/types/index.ts"],
+  "out": "docs/api",
+  "name": "Pricofy Geocode ES API",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "includeVersion": true,
+  "readme": "none",
+  "navigation": {
+    "includeCategories": true,
+    "includeGroups": true
+  }
+}
+
