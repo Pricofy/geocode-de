@@ -25,9 +25,9 @@ func TestPostalCodeService_GeocodeByPostal(t *testing.T) {
 			wantErr:     false,
 		},
 		{
-			name: "valid municipio",
+			name: "valid municipality",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"geocode-by-postal","municipio":"Madrid"}`,
+				Body: `{"operation":"geocode-by-postal","municipality":"Madrid"}`,
 			},
 			wantSuccess: true,
 			wantErr:     false,
@@ -49,7 +49,7 @@ func TestPostalCodeService_GeocodeByPostal(t *testing.T) {
 			wantErr:     true,
 		},
 		{
-			name: "missing both postal code and municipio",
+			name: "missing both postal code and municipality",
 			event: domain.LambdaEvent{
 				Body: `{"operation":"geocode-by-postal"}`,
 			},
@@ -210,7 +210,7 @@ func TestPostalCodeService_ValidatePostal(t *testing.T) {
 	}
 }
 
-func TestPostalCodeService_ValidateMunicipio(t *testing.T) {
+func TestPostalCodeService_ValidateMunicipality(t *testing.T) {
 	service := NewPostalCodeService()
 
 	tests := []struct {
@@ -220,25 +220,25 @@ func TestPostalCodeService_ValidateMunicipio(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name: "valid municipio",
+			name: "valid municipality",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"validate-municipio","municipio":"Madrid"}`,
+				Body: `{"operation":"validate-municipality","municipality":"Madrid"}`,
 			},
 			wantValid: true,
 			wantErr:   false,
 		},
 		{
-			name: "invalid municipio",
+			name: "invalid municipality",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"validate-municipio","municipio":"NonExistentCity"}`,
+				Body: `{"operation":"validate-municipality","municipality":"NonExistentCity"}`,
 			},
 			wantValid: false,
 			wantErr:   false,
 		},
 		{
-			name: "missing municipio",
+			name: "missing municipality",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"validate-municipio"}`,
+				Body: `{"operation":"validate-municipality"}`,
 			},
 			wantValid: false,
 			wantErr:   true,
@@ -247,7 +247,7 @@ func TestPostalCodeService_ValidateMunicipio(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := service.ValidateMunicipio(tt.event)
+			result, err := service.ValidateMunicipality(tt.event)
 
 			if tt.wantErr {
 				if err == nil {
@@ -320,7 +320,7 @@ func TestPostalCodeService_AutocompletePostal(t *testing.T) {
 	}
 }
 
-func TestPostalCodeService_AutocompleteMunicipio(t *testing.T) {
+func TestPostalCodeService_AutocompleteMunicipality(t *testing.T) {
 	service := NewPostalCodeService()
 
 	tests := []struct {
@@ -332,7 +332,7 @@ func TestPostalCodeService_AutocompleteMunicipio(t *testing.T) {
 		{
 			name: "valid query",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"autocomplete-municipio","query":"mad","limit":5}`,
+				Body: `{"operation":"autocomplete-municipality","query":"mad","limit":5}`,
 			},
 			wantCount: 5,
 			wantErr:   false,
@@ -340,7 +340,7 @@ func TestPostalCodeService_AutocompleteMunicipio(t *testing.T) {
 		{
 			name: "missing query",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"autocomplete-municipio","limit":5}`,
+				Body: `{"operation":"autocomplete-municipality","limit":5}`,
 			},
 			wantCount: 0,
 			wantErr:   true,
@@ -349,7 +349,7 @@ func TestPostalCodeService_AutocompleteMunicipio(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			results, err := service.AutocompleteMunicipio(tt.event)
+			results, err := service.AutocompleteMunicipality(tt.event)
 
 			if tt.wantErr {
 				if err == nil {
@@ -436,3 +436,148 @@ func TestPostalCodeService_ValidateCoordinates(t *testing.T) {
 	}
 }
 
+// TestPostalCodeService_EdgeCases tests edge cases for better coverage
+func TestPostalCodeService_EdgeCases(t *testing.T) {
+	service := NewPostalCodeService()
+
+	t.Run("GeocodeByPostal with both postalCode and municipality", func(t *testing.T) {
+		event := domain.LambdaEvent{
+			Body: `{"operation":"geocode-by-postal","postalCode":"28001","municipality":"Madrid"}`,
+		}
+		result, err := service.GeocodeByPostal(event)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if !result.Success {
+			t.Error("Expected success=true")
+		}
+	})
+
+	t.Run("GeocodeByPostal with neither postalCode nor municipality", func(t *testing.T) {
+		event := domain.LambdaEvent{
+			Body: `{"operation":"geocode-by-postal"}`,
+		}
+		_, err := service.GeocodeByPostal(event)
+		if err == nil {
+			t.Error("Expected error, got nil")
+		}
+	})
+
+	t.Run("ReverseGeocode with invalid coordinates", func(t *testing.T) {
+		event := domain.LambdaEvent{
+			Body: `{"operation":"reverse-geocode","lat":999,"lon":999}`,
+		}
+		_, err := service.ReverseGeocode(event)
+		if err == nil {
+			t.Error("Expected error for invalid coordinates, got nil")
+		}
+	})
+
+	t.Run("AutocompletePostal with empty prefix", func(t *testing.T) {
+		event := domain.LambdaEvent{
+			Body: `{"operation":"autocomplete-postal","prefix":""}`,
+		}
+		results, err := service.AutocompletePostal(event)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if len(results) == 0 {
+			t.Error("Expected some results for empty prefix")
+		}
+	})
+
+	t.Run("AutocompleteMunicipality with empty query", func(t *testing.T) {
+		event := domain.LambdaEvent{
+			Body: `{"operation":"autocomplete-municipality","query":""}`,
+		}
+		results, err := service.AutocompleteMunicipality(event)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if len(results) == 0 {
+			t.Error("Expected some results for empty query")
+		}
+	})
+
+	t.Run("AutocompletePostal with custom limit", func(t *testing.T) {
+		event := domain.LambdaEvent{
+			Body: `{"operation":"autocomplete-postal","prefix":"28","limit":5}`,
+		}
+		results, err := service.AutocompletePostal(event)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if len(results) > 5 {
+			t.Errorf("Expected max 5 results, got %d", len(results))
+		}
+	})
+
+	t.Run("AutocompleteMunicipality with custom limit", func(t *testing.T) {
+		event := domain.LambdaEvent{
+			Body: `{"operation":"autocomplete-municipality","query":"mad","limit":3}`,
+		}
+		results, err := service.AutocompleteMunicipality(event)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if len(results) > 3 {
+			t.Errorf("Expected max 3 results, got %d", len(results))
+		}
+	})
+}
+
+
+// TestGeocodeByPostalWithMunicipalityNotFound tests the municipality not found case
+func TestGeocodeByPostalWithMunicipalityNotFound(t *testing.T) {
+service := NewPostalCodeService()
+
+t.Run("municipality not found after postal code not found", func(t *testing.T) {
+event := domain.LambdaEvent{
+Body: `{"operation":"geocode-by-postal","postalCode":"99999","municipality":"NonExistentCity"}`,
+}
+_, err := service.GeocodeByPostal(event)
+if err == nil {
+t.Error("Expected error for non-existent municipality, got nil")
+}
+})
+
+t.Run("valid postal code with invalid municipality", func(t *testing.T) {
+event := domain.LambdaEvent{
+Body: `{"operation":"geocode-by-postal","postalCode":"28001","municipality":"NonExistentCity"}`,
+}
+result, err := service.GeocodeByPostal(event)
+if err != nil {
+t.Errorf("Expected no error, got %v", err)
+}
+if !result.Success {
+t.Error("Expected success=true for valid postal code")
+}
+})
+}
+
+// TestReverseGeocodeEdgeCases tests edge cases in reverse geocode
+func TestReverseGeocodeEdgeCases(t *testing.T) {
+service := NewPostalCodeService()
+
+t.Run("coordinates at boundary", func(t *testing.T) {
+event := domain.LambdaEvent{
+Body: `{"operation":"reverse-geocode","lat":90,"lon":180}`,
+}
+_, err := service.ReverseGeocode(event)
+// Should work or fail gracefully
+if err != nil {
+// Error is acceptable for boundary coordinates
+t.Logf("Boundary coordinates error: %v", err)
+}
+})
+
+t.Run("coordinates slightly out of range", func(t *testing.T) {
+event := domain.LambdaEvent{
+Body: `{"operation":"reverse-geocode","lat":90.1,"lon":180.1}`,
+}
+_, err := service.ReverseGeocode(event)
+if err == nil {
+t.Error("Expected error for out-of-range coordinates, got nil")
+}
+})
+}

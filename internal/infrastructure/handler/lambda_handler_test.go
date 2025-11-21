@@ -12,10 +12,10 @@ func TestHandler_GeocodeByPostal(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name         string
-		event        domain.LambdaEvent
-		wantStatus   int
-		wantSuccess  bool
+		name           string
+		event          domain.LambdaEvent
+		wantStatus     int
+		wantSuccess    bool
 		wantPostalCode string
 	}{
 		{
@@ -23,14 +23,14 @@ func TestHandler_GeocodeByPostal(t *testing.T) {
 			event: domain.LambdaEvent{
 				Body: `{"operation":"geocode-by-postal","postalCode":"28001"}`,
 			},
-			wantStatus:   200,
-			wantSuccess:  true,
+			wantStatus:     200,
+			wantSuccess:    true,
 			wantPostalCode: "28001",
 		},
 		{
 			name: "valid municipio",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"geocode-by-postal","municipio":"Madrid"}`,
+				Body: `{"operation":"geocode-by-postal","municipality":"Madrid"}`,
 			},
 			wantStatus:  200,
 			wantSuccess: true,
@@ -79,9 +79,9 @@ func TestHandler_ReverseGeocode(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name       string
-		event      domain.LambdaEvent
-		wantStatus int
+		name        string
+		event       domain.LambdaEvent
+		wantStatus  int
 		wantSuccess bool
 	}{
 		{
@@ -197,7 +197,7 @@ func TestHandler_ValidateMunicipio(t *testing.T) {
 		{
 			name: "valid municipio",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"validate-municipio","municipio":"Madrid"}`,
+				Body: `{"operation":"validate-municipality","municipality":"Madrid"}`,
 			},
 			wantStatus: 200,
 			wantValid:  true,
@@ -205,7 +205,7 @@ func TestHandler_ValidateMunicipio(t *testing.T) {
 		{
 			name: "invalid municipio",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"validate-municipio","municipio":"NonExistentCity"}`,
+				Body: `{"operation":"validate-municipality","municipality":"NonExistentCity"}`,
 			},
 			wantStatus: 200,
 			wantValid:  false,
@@ -303,7 +303,7 @@ func TestHandler_AutocompleteMunicipio(t *testing.T) {
 		{
 			name: "valid query",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"autocomplete-municipio","query":"mad","limit":5}`,
+				Body: `{"operation":"autocomplete-municipality","query":"mad","limit":5}`,
 			},
 			wantStatus: 200,
 			wantCount:  5,
@@ -427,3 +427,43 @@ func TestHandler_MissingOperation(t *testing.T) {
 	}
 }
 
+// TestHandlerEdgeCases tests edge cases for better coverage
+func TestHandlerEdgeCases(t *testing.T) {
+	t.Run("invalid event format", func(t *testing.T) {
+		// Create a complex struct that will fail JSON marshaling
+		event := make(chan int) // channels cannot be marshaled to JSON
+		response, err := Handler(context.Background(), event)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if response.StatusCode != 400 {
+			t.Errorf("Expected status code 400, got %d", response.StatusCode)
+		}
+	})
+
+	t.Run("API Gateway format with body", func(t *testing.T) {
+		event := map[string]interface{}{
+			"body": `{"operation":"validate-postal","postalCode":"28001"}`,
+		}
+		response, err := Handler(context.Background(), event)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if response.StatusCode != 200 {
+			t.Errorf("Expected status code 200, got %d", response.StatusCode)
+		}
+	})
+
+	t.Run("unknown operation", func(t *testing.T) {
+		event := map[string]interface{}{
+			"operation": "unknown-operation",
+		}
+		response, err := Handler(context.Background(), event)
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if response.StatusCode != 400 {
+			t.Errorf("Expected status code 400, got %d", response.StatusCode)
+		}
+	})
+}

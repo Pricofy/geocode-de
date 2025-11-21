@@ -5,9 +5,9 @@
 //   - geocode-by-postal: Convert postal code to coordinates
 //   - reverse-geocode: Find nearest postal code from coordinates
 //   - validate-postal: Validate if postal code exists
-//   - validate-municipio: Validate if municipality exists (operation name in Spanish for API compatibility)
+//   - validate-municipality: Validate if municipality exists
 //   - autocomplete-postal: Autocomplete postal codes by prefix
-//   - autocomplete-municipio: Autocomplete municipalities by query (operation name in Spanish for API compatibility)
+//   - autocomplete-municipality: Autocomplete municipalities by query
 
 package main
 
@@ -111,12 +111,12 @@ func (a *App) HandleRequest(ctx context.Context, event domain.LambdaEvent) (doma
 		return a.handleReverseGeocode(ctx, event)
 	case "validate-postal":
 		return a.handleValidatePostal(ctx, event)
-	case "validate-municipio":
-		return a.handleValidateMunicipio(ctx, event)
+	case "validate-municipality":
+		return a.handleValidateMunicipality(ctx, event)
 	case "autocomplete-postal":
 		return a.handleAutocompletePostal(ctx, event)
-	case "autocomplete-municipio":
-		return a.handleAutocompleteMunicipio(ctx, event)
+	case "autocomplete-municipality":
+		return a.handleAutocompleteMunicipality(ctx, event)
 	default:
 		a.logger.Warn(fmt.Sprintf("Unknown operation requested: %s", operation), map[string]interface{}{
 			"operation": operation,
@@ -221,9 +221,9 @@ func (a *App) handleValidatePostal(ctx context.Context, event domain.LambdaEvent
 	}, nil
 }
 
-// handleValidateMunicipio handles validate-municipio operation (validate municipality).
-func (a *App) handleValidateMunicipio(ctx context.Context, event domain.LambdaEvent) (domain.LambdaResponse, error) {
-	result, err := a.service.ValidateMunicipio(event)
+// handleValidateMunicipality handles validate-municipality operation (validate municipality).
+func (a *App) handleValidateMunicipality(ctx context.Context, event domain.LambdaEvent) (domain.LambdaResponse, error) {
+	result, err := a.service.ValidateMunicipality(event)
 	if err != nil {
 		body, _ := json.Marshal(map[string]interface{}{
 			"success": false,
@@ -266,9 +266,9 @@ func (a *App) handleAutocompletePostal(ctx context.Context, event domain.LambdaE
 	}, nil
 }
 
-// handleAutocompleteMunicipio handles autocomplete-municipio operation (autocomplete municipality).
-func (a *App) handleAutocompleteMunicipio(ctx context.Context, event domain.LambdaEvent) (domain.LambdaResponse, error) {
-	results, err := a.service.AutocompleteMunicipio(event)
+// handleAutocompleteMunicipality handles autocomplete-municipality operation (autocomplete municipality).
+func (a *App) handleAutocompleteMunicipality(ctx context.Context, event domain.LambdaEvent) (domain.LambdaResponse, error) {
+	results, err := a.service.AutocompleteMunicipality(event)
 	if err != nil {
 		body, _ := json.Marshal(map[string]interface{}{
 			"success": false,
@@ -289,3 +289,4 @@ func (a *App) handleAutocompleteMunicipio(ctx context.Context, event domain.Lamb
 		Body:       string(body),
 	}, nil
 }
+

@@ -6,12 +6,12 @@ info:
     Spanish postal code geocoding, validation, and autocomplete microservice.
     
     This service provides 6 operations for Spanish postal codes:
-    - **geocode-by-postal**: Convert postal code to coordinates
+    - **geocode-by-postal**: Convert postal code or municipality to coordinates
     - **reverse-geocode**: Find nearest postal code from coordinates
     - **validate-postal**: Check if postal code exists
-    - **validate-municipio**: Check if municipality exists
+    - **validate-municipality**: Check if municipality exists
     - **autocomplete-postal**: Prefix-based postal code search
-    - **autocomplete-municipio**: Fuzzy municipality search
+    - **autocomplete-municipality**: Fuzzy municipality search
     
     **Architecture**: Hexagonal architecture (Ports & Adapters) with dependency injection.
     Single Lambda function with internal routing via `operation` parameter.
@@ -63,12 +63,12 @@ operations:
     summary: Validate postal code
     description: Checks if Spanish postal code exists in the database. Performance: <1ms.
     
-  validateMunicipio:
+  validateMunicipality:
     action: receive
     channel:
-      $ref: '#/channels/validateMunicipio'
+      $ref: '#/channels/validateMunicipality'
     summary: Validate municipality
-    description: Checks if Spanish municipality exists in the database.
+    description: Checks if Spanish municipality exists in the database. Performance: <1ms.
     
   autocompletePostal:
     action: receive
@@ -77,10 +77,10 @@ operations:
     summary: Autocomplete postal code
     description: Searches Spanish postal codes by prefix. Performance: <5ms.
     
-  autocompleteMunicipio:
+  autocompleteMunicipality:
     action: receive
     channel:
-      $ref: '#/channels/autocompleteMunicipio'
+      $ref: '#/channels/autocompleteMunicipality'
     summary: Autocomplete municipality
     description: Searches Spanish municipalities by query (fuzzy search). Performance: <5ms.
 
@@ -109,13 +109,13 @@ channels:
       ValidatePostalResponse:
         $ref: '#/components/messages/ValidatePostalResponse'
   
-  validateMunicipio:
+  validateMunicipality:
     address: lambda://pricofy-geocode-es
     messages:
-      ValidateMunicipioRequest:
-        $ref: '#/components/messages/ValidateMunicipioRequest'
-      ValidateMunicipioResponse:
-        $ref: '#/components/messages/ValidateMunicipioResponse'
+      ValidateMunicipalityRequest:
+        $ref: '#/components/messages/ValidateMunicipalityRequest'
+      ValidateMunicipalityResponse:
+        $ref: '#/components/messages/ValidateMunicipalityResponse'
   
   autocompletePostal:
     address: lambda://pricofy-geocode-es
@@ -125,23 +125,23 @@ channels:
       AutocompletePostalResponse:
         $ref: '#/components/messages/AutocompletePostalResponse'
   
-  autocompleteMunicipio:
+  autocompleteMunicipality:
     address: lambda://pricofy-geocode-es
     messages:
-      AutocompleteMunicipioRequest:
-        $ref: '#/components/messages/AutocompleteMunicipioRequest'
-      AutocompleteMunicipioResponse:
-        $ref: '#/components/messages/AutocompleteMunicipioResponse'
+      AutocompleteMunicipalityRequest:
+        $ref: '#/components/messages/AutocompleteMunicipalityRequest'
+      AutocompleteMunicipalityResponse:
+        $ref: '#/components/messages/AutocompleteMunicipalityResponse'
 
 components:
   messages:
     GeocodeByPostalRequest:
       name: GeocodeByPostalRequest
       title: Geocode By Postal Request
-      summary: Request to geocode Spanish postal code to coordinates
+      summary: Request to geocode Spanish postal code or municipality to coordinates
       payload:
         type: object
-        required: [operation, postalCode]
+        required: [operation]
         properties:
           operation:
             type: string
@@ -149,8 +149,15 @@ components:
             description: Operation identifier
           postalCode:
             type: string
-            description: Postal code (5 digits)
+            description: Postal code (5 digits). Either postalCode or municipality is required.
             example: "28001"
+          municipality:
+            type: string
+            description: Municipality name. Either postalCode or municipality is required.
+            example: "Madrid"
+        oneOf:
+          - required: [postalCode]
+          - required: [municipality]
     
     GeocodeByPostalResponse:
       name: GeocodeByPostalResponse
@@ -279,27 +286,27 @@ components:
             type: string
             description: Input value that was validated
     
-    ValidateMunicipioRequest:
-      name: ValidateMunicipioRequest
-      title: Validate Municipio Request
+    ValidateMunicipalityRequest:
+      name: ValidateMunicipalityRequest
+      title: Validate Municipality Request
       summary: Request to validate Spanish municipality
       payload:
         type: object
-        required: [operation, municipio]
+        required: [operation, municipality]
         properties:
           operation:
             type: string
-            const: validate-municipio
+            const: validate-municipality
             description: Operation identifier
-          municipio:
+          municipality:
             type: string
             description: Municipality name to validate
             example: "Madrid"
     
-    ValidateMunicipioResponse:
-      name: ValidateMunicipioResponse
-      title: Validate Municipio Response
-      summary: Response from validate municipio operation
+    ValidateMunicipalityResponse:
+      name: ValidateMunicipalityResponse
+      title: Validate Municipality Response
+      summary: Response from validate municipality operation
       payload:
         type: object
         required: [valid]
@@ -362,9 +369,9 @@ components:
             type: integer
             description: Number of results returned
     
-    AutocompleteMunicipioRequest:
-      name: AutocompleteMunicipioRequest
-      title: Autocomplete Municipio Request
+    AutocompleteMunicipalityRequest:
+      name: AutocompleteMunicipalityRequest
+      title: Autocomplete Municipality Request
       summary: Request to autocomplete Spanish municipality
       payload:
         type: object
@@ -372,7 +379,7 @@ components:
         properties:
           operation:
             type: string
-            const: autocomplete-municipio
+            const: autocomplete-municipality
             description: Operation identifier
           query:
             type: string
@@ -384,10 +391,10 @@ components:
             description: Maximum number of results
             example: 5
     
-    AutocompleteMunicipioResponse:
-      name: AutocompleteMunicipioResponse
-      title: Autocomplete Municipio Response
-      summary: Response from autocomplete municipio operation
+    AutocompleteMunicipalityResponse:
+      name: AutocompleteMunicipalityResponse
+      title: Autocomplete Municipality Response
+      summary: Response from autocomplete municipality operation
       payload:
         type: object
         required: [success]

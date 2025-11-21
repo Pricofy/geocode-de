@@ -3,10 +3,10 @@ package domain
 // PostalData represents a Spanish postal code entry in the database.
 // Contains geographic coordinates, municipality, and province information.
 type PostalData struct {
-	Lat          float64 `json:"lat"`
-	Lon          float64 `json:"lon"`
-	Municipality string  `json:"municipality"`
-	Provincia    string  `json:"provincia"`
+	Lat       float64 `json:"lat"`
+	Lon       float64 `json:"lon"`
+	Municipio string  `json:"municipio"`
+	Provincia string  `json:"provincia"`
 }
 
 // Coordinates represents geographic coordinates (latitude and longitude).
@@ -18,12 +18,12 @@ type Coordinates struct {
 // GeocodingResult represents the result of a geocoding operation
 // (postal code or municipality → coordinates).
 type GeocodingResult struct {
-	Success      bool        `json:"success"`
-	Coords       Coordinates `json:"coords"`
-	Municipality string      `json:"municipality"`
-	Provincia    string      `json:"provincia"`
-	PostalCode   string      `json:"postalCode"`
-	Source       string      `json:"source"` // "postal_code", "municipality", or "reverse_geocode"
+	Success    bool        `json:"success"`
+	Coords     Coordinates `json:"coords"`
+	Municipio  string      `json:"municipio"`
+	Provincia  string      `json:"provincia"`
+	PostalCode string      `json:"postalCode"`
+	Source     string      `json:"source"` // "postal_code", "municipio", or "reverse_geocode"
 }
 
 // ReverseGeocodingResult represents the result of a reverse geocoding operation
@@ -40,9 +40,9 @@ type ReverseGeocodingResult struct {
 
 // AutocompleteResult represents a single result in an autocomplete operation.
 type AutocompleteResult struct {
-	PostalCode   string `json:"postalCode"`
-	Municipality string `json:"municipality"`
-	Provincia    string `json:"provincia"`
+	PostalCode string `json:"postalCode"`
+	Municipio  string `json:"municipio"`
+	Provincia  string `json:"provincia"`
 }
 
 // ValidationResult represents the result of a validation operation.

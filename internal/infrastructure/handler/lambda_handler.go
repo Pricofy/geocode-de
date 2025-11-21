@@ -7,28 +7,31 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/pricofy/geocode-es/internal/application"
 	"github.com/pricofy/geocode-es/internal/domain"
-	"github.com/pricofy/geocode-es/internal/infrastructure/logger"
+	"github.com/pricofy/geocode-es/internal/shared/logger"
 )
+
+// handlerLogger is the logger instance for the handler
+var handlerLogger = logger.NewLogger("LambdaHandler")
 
 // Handler is the main Lambda handler that routes requests to appropriate operations.
 // Supports all Spanish postal code operations:
 // - geocode-by-postal
 // - reverse-geocode
 // - validate-postal
-// - validate-municipio
+// - validate-municipality
 // - autocomplete-postal
-// - autocomplete-municipio
+// - autocomplete-municipality
 //
 // Handles both event formats:
 // 1. Direct Lambda invocation: { "operation": "...", "postalCode": "..." }
 // 2. API Gateway format: { "body": "{\"operation\":\"...\"}" }
 func Handler(ctx context.Context, event interface{}) (domain.LambdaResponse, error) {
-	logger.Info("GeocodeHandler", "Processing request", nil)
+	handlerLogger.Info("Processing request", nil)
 
 	// Convert event to JSON bytes for parsing
 	eventJSON, err := json.Marshal(event)
 	if err != nil {
-		logger.Error("GeocodeHandler", "Failed to marshal event", err, nil)
+		handlerLogger.Error("Failed to marshal event", err, nil)
 		errorBody, _ := json.Marshal(map[string]interface{}{
 			"success": false,
 			"error":   "Invalid event format",
@@ -49,7 +52,7 @@ func Handler(ctx context.Context, event interface{}) (domain.LambdaResponse, err
 	// Parse as RequestBody (direct Lambda invocation or parsed body)
 	var body domain.RequestBody
 	if err := json.Unmarshal(eventJSON, &body); err != nil {
-		logger.Error("GeocodeHandler", "Failed to parse request body", err, nil)
+		handlerLogger.Error("Failed to parse request body", err, nil)
 		errorBody, _ := json.Marshal(map[string]interface{}{
 			"success": false,
 			"error":   "Invalid JSON in request body",
@@ -92,19 +95,19 @@ func Handler(ctx context.Context, event interface{}) (domain.LambdaResponse, err
 	case "validate-postal":
 		return application.ValidatePostalOperation(service, eventWithBody)
 
-	case "validate-municipio":
+	case "validate-municipality":
 		return application.ValidateMunicipioOperation(service, eventWithBody)
 
 	case "autocomplete-postal":
 		return application.AutocompletePostalOperation(service, eventWithBody)
 
-	case "autocomplete-municipio":
+	case "autocomplete-municipality":
 		return application.AutocompleteMunicipioOperation(service, eventWithBody)
 
 	default:
 		errorBody, _ := json.Marshal(map[string]interface{}{
 			"success": false,
-			"error":   "Operation '" + body.Operation + "' not supported. Supported operations: geocode-by-postal, reverse-geocode, validate-postal, validate-municipio, autocomplete-postal, autocomplete-municipio",
+			"error":   "Operation '" + body.Operation + "' not supported. Supported operations: geocode-by-postal, reverse-geocode, validate-postal, validate-municipality, autocomplete-postal, autocomplete-municipality",
 		})
 		return domain.LambdaResponse{
 			StatusCode: 400,

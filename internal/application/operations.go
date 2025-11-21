@@ -6,8 +6,11 @@ import (
 	"strings"
 
 	"github.com/pricofy/geocode-es/internal/domain"
-	"github.com/pricofy/geocode-es/internal/infrastructure/logger"
+	"github.com/pricofy/geocode-es/internal/shared/logger"
 )
+
+// operationsLogger is the logger instance for the operations
+var operationsLogger = logger.NewLogger("Operations")
 
 // GeocodeByPostalOperation handles the geocode-by-postal operation.
 //
@@ -22,16 +25,16 @@ import (
 //   - LambdaResponse with status code 200 and geocoding result on success
 //   - LambdaResponse with status code 400/404/500 and error message on failure
 func GeocodeByPostalOperation(service *PostalCodeService, event domain.LambdaEvent) (domain.LambdaResponse, error) {
-	logger.Info("GeocodeByPostalOperation", "Processing request", nil)
+	operationsLogger.Info("Processing request", nil)
 
 	result, err := service.GeocodeByPostal(event)
 	if err != nil {
 		return handleGeocodeError(err, "Geocoding failed")
 	}
 
-	logger.Info("GeocodeByPostalOperation", "Geocoding successful", map[string]interface{}{
+	operationsLogger.Info("Geocoding successful", map[string]interface{}{
 		"postalCode":   result.PostalCode,
-		"municipality": result.Municipality,
+		"municipality": result.Municipio,
 		"provincia":    result.Provincia,
 		"source":       result.Source,
 	})
@@ -56,14 +59,14 @@ func GeocodeByPostalOperation(service *PostalCodeService, event domain.LambdaEve
 //   - LambdaResponse with status code 200 and reverse geocoding result on success
 //   - LambdaResponse with status code 400/404/500 and error message on failure
 func ReverseGeocodeOperation(service *PostalCodeService, event domain.LambdaEvent) (domain.LambdaResponse, error) {
-	logger.Info("ReverseGeocodeOperation", "Processing request", nil)
+	operationsLogger.Info("Processing request", nil)
 
 	result, err := service.ReverseGeocode(event)
 	if err != nil {
 		return handleReverseGeocodeError(err, "Reverse geocoding failed")
 	}
 
-	logger.Info("ReverseGeocodeOperation", "Reverse geocoding successful", map[string]interface{}{
+	operationsLogger.Info("Reverse geocoding successful", map[string]interface{}{
 		"postalCode": result.PostalCode,
 		"municipio":  result.City,
 		"provincia":  result.Provincia,
@@ -89,7 +92,7 @@ func ReverseGeocodeOperation(service *PostalCodeService, event domain.LambdaEven
 //   - LambdaResponse with status code 200 and validation result on success
 //   - LambdaResponse with status code 400/500 and error message on failure
 func ValidatePostalOperation(service *PostalCodeService, event domain.LambdaEvent) (domain.LambdaResponse, error) {
-	logger.Info("ValidatePostalOperation", "Processing request", nil)
+	operationsLogger.Info("Processing request", nil)
 
 	result, err := service.ValidatePostal(event)
 	if err != nil {
@@ -115,9 +118,9 @@ func ValidatePostalOperation(service *PostalCodeService, event domain.LambdaEven
 //   - LambdaResponse with status code 200 and validation result on success
 //   - LambdaResponse with status code 400/500 and error message on failure
 func ValidateMunicipioOperation(service *PostalCodeService, event domain.LambdaEvent) (domain.LambdaResponse, error) {
-	logger.Info("ValidateMunicipioOperation", "Processing request", nil)
+	operationsLogger.Info("Processing request", nil)
 
-	result, err := service.ValidateMunicipio(event)
+	result, err := service.ValidateMunicipality(event)
 	if err != nil {
 		return handleValidationError(err, "Municipio validation failed")
 	}
@@ -142,7 +145,7 @@ func ValidateMunicipioOperation(service *PostalCodeService, event domain.LambdaE
 //   - LambdaResponse with status code 200 and autocomplete results on success
 //   - LambdaResponse with status code 400/500 and error message on failure
 func AutocompletePostalOperation(service *PostalCodeService, event domain.LambdaEvent) (domain.LambdaResponse, error) {
-	logger.Info("AutocompletePostalOperation", "Processing request", nil)
+	operationsLogger.Info("Processing request", nil)
 
 	results, err := service.AutocompletePostal(event)
 	if err != nil {
@@ -174,9 +177,9 @@ func AutocompletePostalOperation(service *PostalCodeService, event domain.Lambda
 //   - LambdaResponse with status code 200 and autocomplete results on success
 //   - LambdaResponse with status code 400/500 and error message on failure
 func AutocompleteMunicipioOperation(service *PostalCodeService, event domain.LambdaEvent) (domain.LambdaResponse, error) {
-	logger.Info("AutocompleteMunicipioOperation", "Processing request", nil)
+	operationsLogger.Info("Processing request", nil)
 
-	results, err := service.AutocompleteMunicipio(event)
+	results, err := service.AutocompleteMunicipality(event)
 	if err != nil {
 		return handleValidationError(err, "Autocomplete municipio failed")
 	}
@@ -195,7 +198,7 @@ func AutocompleteMunicipioOperation(service *PostalCodeService, event domain.Lam
 
 // handleGeocodeError handles errors from geocoding operations.
 func handleGeocodeError(err error, defaultMessage string) (domain.LambdaResponse, error) {
-	logger.Error("GeocodeOperation", defaultMessage, err, nil)
+	operationsLogger.Error(defaultMessage, err, nil)
 
 	switch e := err.(type) {
 	case *domain.PostalCodeNotFoundError:
@@ -226,7 +229,7 @@ func handleGeocodeError(err error, defaultMessage string) (domain.LambdaResponse
 
 // handleReverseGeocodeError handles errors from reverse geocoding operations.
 func handleReverseGeocodeError(err error, defaultMessage string) (domain.LambdaResponse, error) {
-	logger.Error("ReverseGeocodeOperation", defaultMessage, err, nil)
+	operationsLogger.Error(defaultMessage, err, nil)
 
 	switch e := err.(type) {
 	case *domain.InvalidCoordinatesError, *domain.ValidationError:
@@ -258,7 +261,7 @@ func handleReverseGeocodeError(err error, defaultMessage string) (domain.LambdaR
 // For autocomplete operations, returns results: [] and count: 0 on error (TypeScript compatibility).
 // For validate operations, returns valid: false on error (TypeScript compatibility).
 func handleValidationError(err error, defaultMessage string) (domain.LambdaResponse, error) {
-	logger.Error("ValidationOperation", defaultMessage, err, nil)
+	operationsLogger.Error(defaultMessage, err, nil)
 
 	switch e := err.(type) {
 	case *domain.ValidationError:

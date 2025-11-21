@@ -10,11 +10,14 @@ import (
 	"sync"
 
 	"github.com/pricofy/geocode-es/internal/domain"
-	"github.com/pricofy/geocode-es/internal/infrastructure/logger"
+	"github.com/pricofy/geocode-es/internal/shared/logger"
 )
 
 //go:embed postal-codes-es.json
 var postalCodesJSON []byte
+
+// providerLogger is the logger instance for the provider package
+var providerLogger = logger.NewLogger("PostalCodeProvider")
 
 // PostalCodeProvider provides access to Spanish postal code data.
 // Implements lazy loading with sync.Once to ensure single initialization.
@@ -45,14 +48,14 @@ func (p *PostalCodeProvider) getCodes() map[string]domain.PostalData {
 	p.initOnce.Do(func() {
 		var codes map[string]domain.PostalData
 		if err := json.Unmarshal(postalCodesJSON, &codes); err != nil {
-			logger.Error("PostalCodeProvider", "Failed to parse postal codes JSON", err, nil)
+			providerLogger.Error("Failed to parse postal codes JSON", err, nil)
 			panic(fmt.Sprintf("Failed to load postal codes database: %v", err))
 		}
 
 		p.codes = codes
 		p.buildIndexes(codes)
 
-		logger.Info("PostalCodeProvider", "Loaded postal codes database with indexes", map[string]interface{}{
+		providerLogger.Info("Loaded postal codes database with indexes", map[string]interface{}{
 			"totalPostalCodes": len(codes),
 			"uniqueMunicipios": len(p.municipioSet),
 		})
@@ -87,9 +90,9 @@ func (p *PostalCodeProvider) buildIndexes(codes map[string]domain.PostalData) {
 
 	sort.Strings(p.sortedPostalCodes)
 
-	logger.Debug("PostalCodeProvider", "Built indexes", map[string]interface{}{
-		"municipioIndexSize":    len(p.municipioIndex),
-		"municipioSetSize":      len(p.municipioSet),
+	providerLogger.Debug("Built indexes", map[string]interface{}{
+		"municipioIndexSize":      len(p.municipioIndex),
+		"municipioSetSize":        len(p.municipioSet),
 		"sortedPostalCodesLength": len(p.sortedPostalCodes),
 	})
 }
@@ -136,20 +139,20 @@ func (p *PostalCodeProvider) calculateDistance(lat1, lon1, lat2, lon2 float64) f
 //   - GeocodingResult with coordinates, municipality, and province
 //   - PostalCodeNotFoundError if postal code doesn't exist
 func (p *PostalCodeProvider) GeocodeByPostalCode(postalCode string) (domain.GeocodingResult, error) {
-	logger.Debug("PostalCodeProvider", "Geocoding by postal code", map[string]interface{}{
+	providerLogger.Debug("Geocoding by postal code", map[string]interface{}{
 		"postalCode": postalCode,
 	})
 
 	codes := p.getCodes()
 	data, exists := codes[postalCode]
 	if !exists {
-		logger.Warn("PostalCodeProvider", "Postal code not found", map[string]interface{}{
+		providerLogger.Warn("Postal code not found", map[string]interface{}{
 			"postalCode": postalCode,
 		})
 		return domain.GeocodingResult{}, domain.NewPostalCodeNotFoundError(postalCode, "")
 	}
 
-	logger.Info("PostalCodeProvider", "Geocoding successful", map[string]interface{}{
+	providerLogger.Info("Geocoding successful", map[string]interface{}{
 		"postalCode": postalCode,
 		"municipio":  data.Municipio,
 		"provincia":  data.Provincia,
@@ -183,7 +186,7 @@ func (p *PostalCodeProvider) GeocodeByPostalCode(postalCode string) (domain.Geoc
 //   - GeocodingResult with coordinates, postal code, and province
 //   - PostalCodeNotFoundError if municipality doesn't exist
 func (p *PostalCodeProvider) GeocodeByMunicipio(municipio string) (domain.GeocodingResult, error) {
-	logger.Debug("PostalCodeProvider", "Geocoding by municipio", map[string]interface{}{
+	providerLogger.Debug("Geocoding by municipio", map[string]interface{}{
 		"municipio": municipio,
 	})
 
@@ -193,7 +196,7 @@ func (p *PostalCodeProvider) GeocodeByMunicipio(municipio string) (domain.Geocod
 	// O(n) search through all postal codes
 	for postalCode, data := range codes {
 		if strings.ToLower(data.Municipio) == municipioLower {
-			logger.Info("PostalCodeProvider", "Geocoding successful", map[string]interface{}{
+			providerLogger.Info("Geocoding successful", map[string]interface{}{
 				"municipio":  municipio,
 				"postalCode": postalCode,
 				"provincia":  data.Provincia,
@@ -213,7 +216,7 @@ func (p *PostalCodeProvider) GeocodeByMunicipio(municipio string) (domain.Geocod
 		}
 	}
 
-	logger.Warn("PostalCodeProvider", "Municipality not found", map[string]interface{}{
+	providerLogger.Warn("Municipality not found", map[string]interface{}{
 		"municipio": municipio,
 	})
 	return domain.GeocodingResult{}, domain.NewPostalCodeNotFoundError("", municipio)
@@ -236,7 +239,7 @@ func (p *PostalCodeProvider) GeocodeByMunicipio(municipio string) (domain.Geocod
 //   - distance: Distance in kilometers to the nearest postal code
 //   - error if no postal code found (should never happen with valid data)
 func (p *PostalCodeProvider) ReverseGeocode(lat, lon float64) (domain.GeocodingResult, float64, error) {
-	logger.Debug("PostalCodeProvider", "Reverse geocoding", map[string]interface{}{
+	providerLogger.Debug("Reverse geocoding", map[string]interface{}{
 		"lat": lat,
 		"lon": lon,
 	})
@@ -269,14 +272,14 @@ func (p *PostalCodeProvider) ReverseGeocode(lat, lon float64) (domain.GeocodingR
 	}
 
 	if nearest == nil {
-		logger.Error("PostalCodeProvider", "No postal code found (should never happen)", nil, nil)
+		providerLogger.Error("No postal code found (should never happen)", nil, nil)
 		return domain.GeocodingResult{}, 0, domain.NewPostalCodeNotFoundError("", "")
 	}
 
 	// Round distance to 3 decimal places
 	distance := math.Round(minDistance*1000) / 1000
 
-	logger.Info("PostalCodeProvider", "Reverse geocoding successful", map[string]interface{}{
+	providerLogger.Info("Reverse geocoding successful", map[string]interface{}{
 		"lat":        lat,
 		"lon":        lon,
 		"postalCode": nearest.postalCode,
@@ -307,7 +310,7 @@ func (p *PostalCodeProvider) ReverseGeocode(lat, lon float64) (domain.GeocodingR
 //   - true if postal code exists in the database
 //   - false if postal code doesn't exist
 func (p *PostalCodeProvider) ValidatePostalCode(postalCode string) bool {
-	logger.Debug("PostalCodeProvider", "Validating postal code", map[string]interface{}{
+	providerLogger.Debug("Validating postal code", map[string]interface{}{
 		"postalCode": postalCode,
 	})
 
@@ -317,7 +320,7 @@ func (p *PostalCodeProvider) ValidatePostalCode(postalCode string) bool {
 		exists = true
 	}
 
-	logger.Debug("PostalCodeProvider", "Postal code validation result", map[string]interface{}{
+	providerLogger.Debug("Postal code validation result", map[string]interface{}{
 		"postalCode": postalCode,
 		"exists":     exists,
 	})
@@ -325,29 +328,29 @@ func (p *PostalCodeProvider) ValidatePostalCode(postalCode string) bool {
 	return exists
 }
 
-// ValidateMunicipio checks if a municipality exists in the database.
+// ValidateMunicipality checks if a municipality exists in the database.
 //
-// Performs an O(1) lookup in the municipio set using lowercase normalized name.
+// Performs an O(1) lookup in the municipality set using lowercase normalized name.
 // Very fast validation (<1ms latency).
 //
 // Parameters:
-//   - municipio: Municipality name to validate (case-insensitive)
+//   - municipality: Municipality name to validate (case-insensitive)
 //
 // Returns:
 //   - true if municipality exists in the database
 //   - false if municipality doesn't exist
-func (p *PostalCodeProvider) ValidateMunicipio(municipio string) bool {
-	logger.Debug("PostalCodeProvider", "Validating municipio", map[string]interface{}{
-		"municipio": municipio,
+func (p *PostalCodeProvider) ValidateMunicipality(municipality string) bool {
+	providerLogger.Debug("Validating municipality", map[string]interface{}{
+		"municipality": municipality,
 	})
 
 	p.getCodes() // Ensure indexes are built
-	municipioLower := strings.ToLower(strings.TrimSpace(municipio))
-	exists := p.municipioSet[municipioLower]
+	municipalityLower := strings.ToLower(strings.TrimSpace(municipality))
+	exists := p.municipioSet[municipalityLower]
 
-	logger.Debug("PostalCodeProvider", "Municipio validation result", map[string]interface{}{
-		"municipio": municipio,
-		"exists":    exists,
+	providerLogger.Debug("Municipality validation result", map[string]interface{}{
+		"municipality": municipality,
+		"exists":       exists,
 	})
 
 	return exists
@@ -368,7 +371,7 @@ func (p *PostalCodeProvider) ValidateMunicipio(municipio string) bool {
 //   - Slice of AutocompleteResult with matching postal codes (up to limit)
 //   - Empty slice if no matches found
 func (p *PostalCodeProvider) AutocompletePostalCode(prefix string, limit int) []domain.AutocompleteResult {
-	logger.Debug("PostalCodeProvider", "Autocomplete postal code", map[string]interface{}{
+	providerLogger.Debug("Autocomplete postal code", map[string]interface{}{
 		"prefix": prefix,
 		"limit":  limit,
 	})
@@ -382,7 +385,7 @@ func (p *PostalCodeProvider) AutocompletePostalCode(prefix string, limit int) []
 	})
 
 	if startIndex >= len(p.sortedPostalCodes) {
-		logger.Debug("PostalCodeProvider", "No postal codes found for prefix", map[string]interface{}{
+		providerLogger.Debug("No postal codes found for prefix", map[string]interface{}{
 			"prefix": prefix,
 		})
 		return results
@@ -397,13 +400,13 @@ func (p *PostalCodeProvider) AutocompletePostalCode(prefix string, limit int) []
 
 		data := codes[postalCode]
 		results = append(results, domain.AutocompleteResult{
-			PostalCode: postalCode,
-			Municipio:  data.Municipio,
-			Provincia:  data.Provincia,
+			PostalCode:   postalCode,
+			Municipio: data.Municipio,
+			Provincia:    data.Provincia,
 		})
 	}
 
-	logger.Info("PostalCodeProvider", "Autocomplete postal code results", map[string]interface{}{
+	providerLogger.Info("Autocomplete postal code results", map[string]interface{}{
 		"prefix":       prefix,
 		"limit":        limit,
 		"resultsCount": len(results),
@@ -412,13 +415,13 @@ func (p *PostalCodeProvider) AutocompletePostalCode(prefix string, limit int) []
 	return results
 }
 
-// AutocompleteMunicipio returns municipalities matching the given query (fuzzy search).
+// AutocompleteMunicipality returns municipalities matching the given query (fuzzy search).
 //
-// Performs a case-insensitive search through the municipio index, matching
+// Performs a case-insensitive search through the municipality index, matching
 // municipalities that either start with or contain the query string. Results
 // are sorted with starts-with matches first, then alphabetically.
 //
-// Performance: O(n) search through municipio index (~5-10ms).
+// Performance: O(n) search through municipality index (~5-10ms).
 //
 // Parameters:
 //   - query: Municipality name query (case-insensitive, e.g., "mad" matches "Madrid")
@@ -427,8 +430,8 @@ func (p *PostalCodeProvider) AutocompletePostalCode(prefix string, limit int) []
 // Returns:
 //   - Slice of AutocompleteResult with matching municipalities (up to limit)
 //   - Empty slice if no matches found
-func (p *PostalCodeProvider) AutocompleteMunicipio(query string, limit int) []domain.AutocompleteResult {
-	logger.Debug("PostalCodeProvider", "Autocomplete municipio", map[string]interface{}{
+func (p *PostalCodeProvider) AutocompleteMunicipality(query string, limit int) []domain.AutocompleteResult {
+	providerLogger.Debug("Autocomplete municipality", map[string]interface{}{
 		"query": query,
 		"limit": limit,
 	})
@@ -436,7 +439,7 @@ func (p *PostalCodeProvider) AutocompleteMunicipio(query string, limit int) []do
 	p.getCodes() // Ensure indexes are built
 	queryLower := strings.ToLower(strings.TrimSpace(query))
 	results := make([]domain.AutocompleteResult, 0)
-	seenMunicipios := make(map[string]bool)
+	seenMunicipalities := make(map[string]bool)
 
 	// Collect matches (prioritize starts-with)
 	type match struct {
@@ -445,23 +448,23 @@ func (p *PostalCodeProvider) AutocompleteMunicipio(query string, limit int) []do
 	}
 	matches := make([]match, 0)
 
-	for municipioKey, entries := range p.municipioIndex {
+	for municipalityKey, entries := range p.municipioIndex {
 		if len(matches) >= limit*2 { // Collect more for sorting
 			break
 		}
 
-		startsWith := strings.HasPrefix(municipioKey, queryLower)
-		contains := strings.Contains(municipioKey, queryLower)
+		startsWith := strings.HasPrefix(municipalityKey, queryLower)
+		contains := strings.Contains(municipalityKey, queryLower)
 
 		if startsWith || contains {
-			if !seenMunicipios[municipioKey] {
-				seenMunicipios[municipioKey] = true
-				entry := entries[0] // Use first postal code for this municipio
+			if !seenMunicipalities[municipalityKey] {
+				seenMunicipalities[municipalityKey] = true
+				entry := entries[0] // Use first postal code for this municipality
 				matches = append(matches, match{
 					result: domain.AutocompleteResult{
-						PostalCode: entry.PostalCode,
-						Municipio:  entry.Data.Municipio,
-						Provincia:  entry.Data.Provincia,
+						PostalCode:   entry.PostalCode,
+						Municipio: entry.Data.Municipio,
+						Provincia:    entry.Data.Provincia,
 					},
 					startsWith: startsWith,
 				})
@@ -485,7 +488,7 @@ func (p *PostalCodeProvider) AutocompleteMunicipio(query string, limit int) []do
 		results = append(results, matches[i].result)
 	}
 
-	logger.Info("PostalCodeProvider", "Autocomplete municipio results", map[string]interface{}{
+	providerLogger.Info("Autocomplete municipality results", map[string]interface{}{
 		"query":        query,
 		"limit":        limit,
 		"resultsCount": len(results),

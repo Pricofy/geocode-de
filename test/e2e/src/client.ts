@@ -10,7 +10,7 @@ import { config } from './config';
 export interface GeocodeByPostalRequest {
   operation: 'geocode-by-postal';
   postalCode?: string;
-  municipio?: string;
+  municipality?: string;
 }
 
 export interface ReverseGeocodeRequest {
@@ -24,9 +24,9 @@ export interface ValidatePostalRequest {
   postalCode: string;
 }
 
-export interface ValidateMunicipioRequest {
-  operation: 'validate-municipio';
-  municipio: string;
+export interface ValidateMunicipalityRequest {
+  operation: 'validate-municipality';
+  municipality: string;
 }
 
 export interface AutocompletePostalRequest {
@@ -35,8 +35,8 @@ export interface AutocompletePostalRequest {
   limit?: number;
 }
 
-export interface AutocompleteMunicipioRequest {
-  operation: 'autocomplete-municipio';
+export interface AutocompleteMunicipalityRequest {
+  operation: 'autocomplete-municipality';
   query: string;
   limit?: number;
 }
@@ -79,11 +79,11 @@ export class GeocodeESClient {
   /**
    * Geocode by postal code or municipality
    */
-  async geocodeByPostal(postalCode?: string, municipio?: string): Promise<LambdaResponse> {
+  async geocodeByPostal(postalCode?: string, municipality?: string): Promise<LambdaResponse> {
     return this.invoke({
       operation: 'geocode-by-postal',
       ...(postalCode && { postalCode }),
-      ...(municipio && { municipio }),
+      ...(municipality && { municipality }),
     });
   }
 
@@ -111,10 +111,10 @@ export class GeocodeESClient {
   /**
    * Validate municipality
    */
-  async validateMunicipio(municipio: string): Promise<LambdaResponse> {
+  async validateMunicipality(municipality: string): Promise<LambdaResponse> {
     return this.invoke({
-      operation: 'validate-municipio',
-      municipio,
+      operation: 'validate-municipality',
+      municipality,
     });
   }
 
@@ -132,9 +132,9 @@ export class GeocodeESClient {
   /**
    * Autocomplete municipality
    */
-  async autocompleteMunicipio(query: string, limit?: number): Promise<LambdaResponse> {
+  async autocompleteMunicipality(query: string, limit?: number): Promise<LambdaResponse> {
     return this.invoke({
-      operation: 'autocomplete-municipio',
+      operation: 'autocomplete-municipality',
       query,
       ...(limit && { limit }),
     });

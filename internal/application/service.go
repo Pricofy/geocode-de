@@ -6,9 +6,12 @@ import (
 	"regexp"
 
 	"github.com/pricofy/geocode-es/internal/domain"
-	"github.com/pricofy/geocode-es/internal/infrastructure/logger"
 	"github.com/pricofy/geocode-es/internal/infrastructure/provider"
+	"github.com/pricofy/geocode-es/internal/shared/logger"
 )
+
+// serviceLogger is the logger instance for the service
+var serviceLogger = logger.NewLogger("PostalCodeService")
 
 // PostalCodeService provides business logic for Spanish postal code operations.
 // Coordinates between the handler layer and the provider layer.
@@ -45,7 +48,7 @@ func (s *PostalCodeService) GeocodeByPostal(event domain.LambdaEvent) (domain.Ge
 		return domain.GeocodingResult{}, err
 	}
 
-	logger.Debug("PostalCodeService", "Geocoding by postal", map[string]interface{}{
+	serviceLogger.Debug("Geocoding by postal", map[string]interface{}{
 		"postalCode":   postalCode,
 		"municipality": municipality,
 	})
@@ -75,7 +78,7 @@ func (s *PostalCodeService) GeocodeByPostal(event domain.LambdaEvent) (domain.Ge
 func (s *PostalCodeService) parseGeocodingInput(event domain.LambdaEvent) (postalCode, municipality string, err error) {
 	var body domain.RequestBody
 	if err := json.Unmarshal([]byte(event.Body), &body); err != nil {
-		logger.Error("PostalCodeService", "Failed to parse request body", err, nil)
+		serviceLogger.Error("Failed to parse request body", err, nil)
 		return "", "", domain.NewValidationError("Invalid JSON in request body", "body")
 	}
 
@@ -94,7 +97,7 @@ func (s *PostalCodeService) parseGeocodingInput(event domain.LambdaEvent) (posta
 func (s *PostalCodeService) tryGeocodeByPostalCode(postalCode, municipality string) (domain.GeocodingResult, error) {
 	// Validate postal code format
 	if !postalCodeRegex.MatchString(postalCode) {
-		logger.Warn("PostalCodeService", "Invalid postal code format", map[string]interface{}{
+		serviceLogger.Warn("Invalid postal code format", map[string]interface{}{
 			"postalCode": postalCode,
 		})
 		return domain.GeocodingResult{}, domain.NewValidationError(
@@ -106,7 +109,7 @@ func (s *PostalCodeService) tryGeocodeByPostalCode(postalCode, municipality stri
 	result, err := s.provider.GeocodeByPostalCode(postalCode)
 	if err != nil {
 		if _, ok := err.(*domain.PostalCodeNotFoundError); ok && municipality != "" {
-			logger.Debug("PostalCodeService", "Postal code not found, will try municipality", map[string]interface{}{
+			serviceLogger.Debug("Postal code not found, will try municipality", map[string]interface{}{
 				"postalCode":   postalCode,
 				"municipality": municipality,
 			})
@@ -115,9 +118,9 @@ func (s *PostalCodeService) tryGeocodeByPostalCode(postalCode, municipality stri
 		return domain.GeocodingResult{}, err
 	}
 
-	logger.Info("PostalCodeService", "Geocoding successful by postal code", map[string]interface{}{
+	serviceLogger.Info("Geocoding successful by postal code", map[string]interface{}{
 		"postalCode":   postalCode,
-		"municipality": result.Municipality,
+		"municipality": result.Municipio,
 		"provincia":    result.Provincia,
 	})
 
@@ -126,15 +129,15 @@ func (s *PostalCodeService) tryGeocodeByPostalCode(postalCode, municipality stri
 
 // geocodeByMunicipality geocodes by municipality name.
 func (s *PostalCodeService) geocodeByMunicipality(municipality string) (domain.GeocodingResult, error) {
-	result, err := s.provider.GeocodeByMunicipality(municipality)
+	result, err := s.provider.GeocodeByMunicipio(municipality)
 	if err != nil {
-		logger.Warn("PostalCodeService", "Municipality not found", map[string]interface{}{
+		serviceLogger.Warn("Municipality not found", map[string]interface{}{
 			"municipality": municipality,
 		})
 		return domain.GeocodingResult{}, err
 	}
 
-	logger.Info("PostalCodeService", "Geocoding successful by municipality", map[string]interface{}{
+	serviceLogger.Info("Geocoding successful by municipality", map[string]interface{}{
 		"municipality": municipality,
 		"postalCode":   result.PostalCode,
 		"provincia":    result.Provincia,
@@ -160,7 +163,7 @@ func (s *PostalCodeService) geocodeByMunicipality(municipality string) (domain.G
 func (s *PostalCodeService) ReverseGeocode(event domain.LambdaEvent) (domain.ReverseGeocodingResult, error) {
 	var body domain.RequestBody
 	if err := json.Unmarshal([]byte(event.Body), &body); err != nil {
-		logger.Error("PostalCodeService", "Failed to parse request body", err, nil)
+		serviceLogger.Error("Failed to parse request body", err, nil)
 		return domain.ReverseGeocodingResult{}, domain.NewValidationError("Invalid JSON in request body", "body")
 	}
 
@@ -175,31 +178,31 @@ func (s *PostalCodeService) ReverseGeocode(event domain.LambdaEvent) (domain.Rev
 		return domain.ReverseGeocodingResult{}, err
 	}
 
-	logger.Debug("PostalCodeService", "Reverse geocoding", map[string]interface{}{
+	serviceLogger.Debug("Reverse geocoding", map[string]interface{}{
 		"lat": lat,
 		"lon": lon,
 	})
 
 	result, distance, err := s.provider.ReverseGeocode(lat, lon)
 	if err != nil {
-		logger.Error("PostalCodeService", "Reverse geocoding failed", err, map[string]interface{}{
+		serviceLogger.Error("Reverse geocoding failed", err, map[string]interface{}{
 			"lat": lat,
 			"lon": lon,
 		})
 		return domain.ReverseGeocodingResult{}, err
 	}
 
-	logger.Info("PostalCodeService", "Reverse geocoding successful", map[string]interface{}{
+	serviceLogger.Info("Reverse geocoding successful", map[string]interface{}{
 		"lat":          lat,
 		"lon":          lon,
 		"postalCode":   result.PostalCode,
-		"municipality": result.Municipality,
+		"municipality": result.Municipio,
 		"distance":     distance,
 	})
 
 	return domain.ReverseGeocodingResult{
 		Success:    result.Success,
-		City:       result.Municipality,
+		City:       result.Municipio,
 		PostalCode: result.PostalCode,
 		Provincia:  result.Provincia,
 		Country:    "España",
@@ -225,13 +228,13 @@ func (s *PostalCodeService) ValidatePostal(event domain.LambdaEvent) (domain.Val
 		return domain.ValidationResult{}, err
 	}
 
-	logger.Debug("PostalCodeService", "Validating postal code", map[string]interface{}{
+	serviceLogger.Debug("Validating postal code", map[string]interface{}{
 		"postalCode": postalCode,
 	})
 
 	isValid := s.provider.ValidatePostalCode(postalCode)
 
-	logger.Info("PostalCodeService", "Postal code validation result", map[string]interface{}{
+	serviceLogger.Info("Postal code validation result", map[string]interface{}{
 		"postalCode": postalCode,
 		"valid":      isValid,
 	})
@@ -259,13 +262,13 @@ func (s *PostalCodeService) ValidateMunicipality(event domain.LambdaEvent) (doma
 		return domain.ValidationResult{}, err
 	}
 
-	logger.Debug("PostalCodeService", "Validating municipality", map[string]interface{}{
+	serviceLogger.Debug("Validating municipality", map[string]interface{}{
 		"municipality": municipality,
 	})
 
 	isValid := s.provider.ValidateMunicipality(municipality)
 
-	logger.Info("PostalCodeService", "Municipality validation result", map[string]interface{}{
+	serviceLogger.Info("Municipality validation result", map[string]interface{}{
 		"municipality": municipality,
 		"valid":        isValid,
 	})
@@ -297,14 +300,14 @@ func (s *PostalCodeService) AutocompletePostal(event domain.LambdaEvent) ([]doma
 		return nil, err
 	}
 
-	logger.Debug("PostalCodeService", "Autocomplete postal code", map[string]interface{}{
+	serviceLogger.Debug("Autocomplete postal code", map[string]interface{}{
 		"prefix": prefix,
 		"limit":  limit,
 	})
 
 	results := s.provider.AutocompletePostalCode(prefix, limit)
 
-	logger.Info("PostalCodeService", "Autocomplete postal code results", map[string]interface{}{
+	serviceLogger.Info("Autocomplete postal code results", map[string]interface{}{
 		"prefix":       prefix,
 		"limit":        limit,
 		"resultsCount": len(results),
@@ -337,14 +340,14 @@ func (s *PostalCodeService) AutocompleteMunicipality(event domain.LambdaEvent) (
 		return nil, err
 	}
 
-	logger.Debug("PostalCodeService", "Autocomplete municipality", map[string]interface{}{
+	serviceLogger.Debug("Autocomplete municipality", map[string]interface{}{
 		"query": query,
 		"limit": limit,
 	})
 
 	results := s.provider.AutocompleteMunicipality(query, limit)
 
-	logger.Info("PostalCodeService", "Autocomplete municipality results", map[string]interface{}{
+	serviceLogger.Info("Autocomplete municipality results", map[string]interface{}{
 		"query":        query,
 		"limit":        limit,
 		"resultsCount": len(results),
@@ -357,7 +360,7 @@ func (s *PostalCodeService) AutocompleteMunicipality(event domain.LambdaEvent) (
 func (s *PostalCodeService) parseValidationInput(event domain.LambdaEvent, field string) (string, error) {
 	var body domain.RequestBody
 	if err := json.Unmarshal([]byte(event.Body), &body); err != nil {
-		logger.Error("PostalCodeService", "Failed to parse request body", err, nil)
+		serviceLogger.Error("Failed to parse request body", err, nil)
 		return "", domain.NewValidationError("Invalid JSON in request body", "body")
 	}
 
@@ -383,7 +386,7 @@ func (s *PostalCodeService) parseValidationInput(event domain.LambdaEvent, field
 func (s *PostalCodeService) parseAutocompleteInput(event domain.LambdaEvent, isPostalCode bool) (string, int, error) {
 	var body domain.RequestBody
 	if err := json.Unmarshal([]byte(event.Body), &body); err != nil {
-		logger.Error("PostalCodeService", "Failed to parse request body", err, nil)
+		serviceLogger.Error("Failed to parse request body", err, nil)
 		return "", 0, domain.NewValidationError("Invalid JSON in request body", "body")
 	}
 

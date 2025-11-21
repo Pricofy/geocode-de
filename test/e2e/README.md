@@ -74,9 +74,9 @@ AWS_REGION=eu-west-1 LAMBDA_FUNCTION_NAME=pricofy-geocode-es-dev npm test
 - **Geocode by Postal**: Postal code and municipality geocoding
 - **Reverse Geocode**: Coordinates to postal code
 - **Validate Postal**: Postal code validation
-- **Validate Municipio**: Municipality validation
+- **Validate Municipality**: Municipality validation
 - **Autocomplete Postal**: Postal code autocomplete
-- **Autocomplete Municipio**: Municipality autocomplete
+- **Autocomplete Municipality**: Municipality autocomplete
 - **Error Handling**: Invalid inputs, not found cases
 - **Performance**: Latency measurements
 

@@ -70,36 +70,36 @@ func TestPostalCodeProvider_GeocodeByPostalCode(t *testing.T) {
 	}
 }
 
-func TestPostalCodeProvider_GeocodeByMunicipio(t *testing.T) {
+func TestPostalCodeProvider_GeocodeByMunicipality(t *testing.T) {
 	p := NewPostalCodeProvider()
 
 	tests := []struct {
 		name        string
-		municipio   string
+		municipality string
 		wantSuccess bool
 		wantErr     bool
 	}{
 		{
-			name:        "valid municipio - Madrid",
-			municipio:   "Madrid",
+			name:         "valid municipality - Madrid",
+			municipality: "Madrid",
 			wantSuccess: true,
 			wantErr:     false,
 		},
 		{
-			name:        "valid municipio - Barcelona",
-			municipio:   "Barcelona",
+			name:         "valid municipality - Barcelona",
+			municipality: "Barcelona",
 			wantSuccess: true,
 			wantErr:     false,
 		},
 		{
-			name:        "invalid municipio",
-			municipio:   "NonExistentCity",
+			name:         "invalid municipality",
+			municipality: "NonExistentCity",
 			wantSuccess: false,
 			wantErr:     true,
 		},
 		{
 			name:        "case insensitive",
-			municipio:   "madrid",
+			municipality: "madrid",
 			wantSuccess: true,
 			wantErr:     false,
 		},
@@ -107,7 +107,7 @@ func TestPostalCodeProvider_GeocodeByMunicipio(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := p.GeocodeByMunicipio(tt.municipio)
+			result, err := p.GeocodeByMunicipio(tt.municipality)
 
 			if tt.wantErr {
 				if err == nil {
@@ -121,7 +121,7 @@ func TestPostalCodeProvider_GeocodeByMunicipio(t *testing.T) {
 					t.Errorf("Expected success=%v, got %v", tt.wantSuccess, result.Success)
 				}
 				if result.Municipio == "" {
-					t.Errorf("Expected non-empty municipio")
+					t.Errorf("Expected non-empty municipality")
 				}
 			}
 		})
@@ -225,36 +225,36 @@ func TestPostalCodeProvider_ValidatePostalCode(t *testing.T) {
 	}
 }
 
-func TestPostalCodeProvider_ValidateMunicipio(t *testing.T) {
+func TestPostalCodeProvider_ValidateMunicipality(t *testing.T) {
 	p := NewPostalCodeProvider()
 
 	tests := []struct {
 		name      string
-		municipio string
+		municipality string
 		want      bool
 	}{
 		{
-			name:      "valid municipio",
-			municipio: "Madrid",
+			name:         "valid municipality",
+			municipality: "Madrid",
 			want:      true,
 		},
 		{
 			name:      "case insensitive",
-			municipio: "madrid",
+			municipality: "madrid",
 			want:      true,
 		},
 		{
-			name:      "invalid municipio",
-			municipio: "NonExistentCity",
+			name:         "invalid municipality",
+			municipality: "NonExistentCity",
 			want:      false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := p.ValidateMunicipio(tt.municipio)
+			got := p.ValidateMunicipality(tt.municipality)
 			if got != tt.want {
-				t.Errorf("ValidateMunicipio(%s) = %v, want %v", tt.municipio, got, tt.want)
+				t.Errorf("ValidateMunicipality(%s) = %v, want %v", tt.municipality, got, tt.want)
 			}
 		})
 	}
@@ -312,7 +312,7 @@ func TestPostalCodeProvider_AutocompletePostalCode(t *testing.T) {
 	}
 }
 
-func TestPostalCodeProvider_AutocompleteMunicipio(t *testing.T) {
+func TestPostalCodeProvider_AutocompleteMunicipality(t *testing.T) {
 	p := NewPostalCodeProvider()
 
 	tests := []struct {
@@ -347,19 +347,19 @@ func TestPostalCodeProvider_AutocompleteMunicipio(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			results := p.AutocompleteMunicipio(tt.query, tt.limit)
+			results := p.AutocompleteMunicipality(tt.query, tt.limit)
 
 			if len(results) > tt.limit {
-				t.Errorf("AutocompleteMunicipio(%s, %d) returned %d results, want at most %d",
+				t.Errorf("AutocompleteMunicipality(%s, %d) returned %d results, want at most %d",
 					tt.query, tt.limit, len(results), tt.limit)
 			}
 
 			// Verify all results contain query (case insensitive)
 			queryLower := tt.query
 			for _, result := range results {
-				municipioLower := result.Municipio
-				if len(municipioLower) < len(queryLower) {
-					t.Errorf("Result municipio %s is shorter than query %s", result.Municipio, tt.query)
+				municipalityLower := result.Municipio
+				if len(municipalityLower) < len(queryLower) {
+					t.Errorf("Result municipality %s is shorter than query %s", result.Municipio, tt.query)
 				}
 			}
 		})
