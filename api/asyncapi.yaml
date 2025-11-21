@@ -33,12 +33,12 @@ info:
     email: dev@pricofy.com
   license:
     name: Private
-    identifier: Private
 
 servers:
   production:
-    host: lambda://pricofy-geocode-es
+    host: pricofy-geocode-es
     protocol: lambda
+    protocolVersion: "1.0"
     description: AWS Lambda Direct Invoke (function: pricofy-geocode-es)
 
 operations:
@@ -86,7 +86,7 @@ operations:
 
 channels:
   geocodeByPostal:
-    address: lambda://pricofy-geocode-es
+    address: pricofy-geocode-es
     messages:
       GeocodeByPostalRequest:
         $ref: '#/components/messages/GeocodeByPostalRequest'
@@ -94,7 +94,7 @@ channels:
         $ref: '#/components/messages/GeocodeByPostalResponse'
   
   reverseGeocode:
-    address: lambda://pricofy-geocode-es
+    address: pricofy-geocode-es
     messages:
       ReverseGeocodeRequest:
         $ref: '#/components/messages/ReverseGeocodeRequest'
@@ -102,7 +102,7 @@ channels:
         $ref: '#/components/messages/ReverseGeocodeResponse'
   
   validatePostal:
-    address: lambda://pricofy-geocode-es
+    address: pricofy-geocode-es
     messages:
       ValidatePostalRequest:
         $ref: '#/components/messages/ValidatePostalRequest'
@@ -110,7 +110,7 @@ channels:
         $ref: '#/components/messages/ValidatePostalResponse'
   
   validateMunicipality:
-    address: lambda://pricofy-geocode-es
+    address: pricofy-geocode-es
     messages:
       ValidateMunicipalityRequest:
         $ref: '#/components/messages/ValidateMunicipalityRequest'
@@ -118,7 +118,7 @@ channels:
         $ref: '#/components/messages/ValidateMunicipalityResponse'
   
   autocompletePostal:
-    address: lambda://pricofy-geocode-es
+    address: pricofy-geocode-es
     messages:
       AutocompletePostalRequest:
         $ref: '#/components/messages/AutocompletePostalRequest'
@@ -126,7 +126,7 @@ channels:
         $ref: '#/components/messages/AutocompletePostalResponse'
   
   autocompleteMunicipality:
-    address: lambda://pricofy-geocode-es
+    address: pricofy-geocode-es
     messages:
       AutocompleteMunicipalityRequest:
         $ref: '#/components/messages/AutocompleteMunicipalityRequest'
