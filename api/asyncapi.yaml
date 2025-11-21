@@ -20,7 +20,7 @@ info:
     
     **Data Source**: Static database of 11,150 Spanish postal codes from GeoNames (embedded in binary).
     
-    **Performance**: <1ms postal lookup, ~10-20ms reverse geocode, <5ms autocomplete.
+    **Performance**: less than 1ms postal lookup, ~10-20ms reverse geocode, less than 5ms autocomplete.
     
     **Optimizations (v1.0.0)**:
     - Dependency injection pattern for testability
@@ -38,6 +38,7 @@ servers:
   production:
     host: pricofy-geocode-es
     protocol: lambda
+    protocolVersion: "1.0"
     description: AWS Lambda Direct Invoke (function: pricofy-geocode-es)
 
 operations:
