@@ -91,7 +91,7 @@ func (s *PostalCodeService) parseGeocodingInput(event domain.LambdaEvent) (posta
 
 // tryGeocodeByPostalCode attempts to geocode by postal code.
 // Returns error if postal code format is invalid or not found.
-func (s *PostalCodeService) tryGeocodeByPostalCode(postalCode, municipio string) (domain.GeocodingResult, error) {
+func (s *PostalCodeService) tryGeocodeByPostalCode(postalCode, municipality string) (domain.GeocodingResult, error) {
 	// Validate postal code format
 	if !postalCodeRegex.MatchString(postalCode) {
 		logger.Warn("PostalCodeService", "Invalid postal code format", map[string]interface{}{
@@ -105,10 +105,10 @@ func (s *PostalCodeService) tryGeocodeByPostalCode(postalCode, municipio string)
 
 	result, err := s.provider.GeocodeByPostalCode(postalCode)
 	if err != nil {
-		if _, ok := err.(*domain.PostalCodeNotFoundError); ok && municipio != "" {
-			logger.Debug("PostalCodeService", "Postal code not found, will try municipio", map[string]interface{}{
-				"postalCode": postalCode,
-				"municipio":  municipio,
+		if _, ok := err.(*domain.PostalCodeNotFoundError); ok && municipality != "" {
+			logger.Debug("PostalCodeService", "Postal code not found, will try municipality", map[string]interface{}{
+				"postalCode":   postalCode,
+				"municipality": municipality,
 			})
 			return domain.GeocodingResult{}, err
 		}
@@ -116,28 +116,28 @@ func (s *PostalCodeService) tryGeocodeByPostalCode(postalCode, municipio string)
 	}
 
 	logger.Info("PostalCodeService", "Geocoding successful by postal code", map[string]interface{}{
-		"postalCode": postalCode,
-		"municipio":  result.Municipio,
-		"provincia":  result.Provincia,
+		"postalCode":   postalCode,
+		"municipality": result.Municipality,
+		"provincia":    result.Provincia,
 	})
 
 	return result, nil
 }
 
-// geocodeByMunicipio geocodes by municipality name.
-func (s *PostalCodeService) geocodeByMunicipio(municipio string) (domain.GeocodingResult, error) {
-	result, err := s.provider.GeocodeByMunicipio(municipio)
+// geocodeByMunicipality geocodes by municipality name.
+func (s *PostalCodeService) geocodeByMunicipality(municipality string) (domain.GeocodingResult, error) {
+	result, err := s.provider.GeocodeByMunicipality(municipality)
 	if err != nil {
-		logger.Warn("PostalCodeService", "Municipio not found", map[string]interface{}{
-			"municipio": municipio,
+		logger.Warn("PostalCodeService", "Municipality not found", map[string]interface{}{
+			"municipality": municipality,
 		})
 		return domain.GeocodingResult{}, err
 	}
 
-	logger.Info("PostalCodeService", "Geocoding successful by municipio", map[string]interface{}{
-		"municipio":  municipio,
-		"postalCode": result.PostalCode,
-		"provincia":  result.Provincia,
+	logger.Info("PostalCodeService", "Geocoding successful by municipality", map[string]interface{}{
+		"municipality": municipality,
+		"postalCode":   result.PostalCode,
+		"provincia":    result.Provincia,
 	})
 
 	return result, nil
@@ -190,16 +190,16 @@ func (s *PostalCodeService) ReverseGeocode(event domain.LambdaEvent) (domain.Rev
 	}
 
 	logger.Info("PostalCodeService", "Reverse geocoding successful", map[string]interface{}{
-		"lat":        lat,
-		"lon":        lon,
-		"postalCode": result.PostalCode,
-		"municipio":  result.Municipio,
-		"distance":   distance,
+		"lat":          lat,
+		"lon":          lon,
+		"postalCode":   result.PostalCode,
+		"municipality": result.Municipality,
+		"distance":     distance,
 	})
 
 	return domain.ReverseGeocodingResult{
 		Success:    result.Success,
-		City:       result.Municipio,
+		City:       result.Municipality,
 		PostalCode: result.PostalCode,
 		Provincia:  result.Provincia,
 		Country:    "España",
@@ -242,37 +242,37 @@ func (s *PostalCodeService) ValidatePostal(event domain.LambdaEvent) (domain.Val
 	}, nil
 }
 
-// ValidateMunicipio validates if a municipality exists in the database.
+// ValidateMunicipality validates if a municipality exists in the database.
 //
-// Performs an O(1) lookup in the municipio set using lowercase normalized name.
+// Performs an O(1) lookup in the municipality set using lowercase normalized name.
 // Very fast validation (<1ms latency).
 //
 // Parameters:
-//   - event: LambdaEvent containing municipio in the body
+//   - event: LambdaEvent containing municipality in the body
 //
 // Returns:
-//   - ValidationResult with valid flag and the municipio value
+//   - ValidationResult with valid flag and the municipality value
 //   - error if input parsing fails
-func (s *PostalCodeService) ValidateMunicipio(event domain.LambdaEvent) (domain.ValidationResult, error) {
-	municipio, err := s.parseValidationInput(event, "municipio")
+func (s *PostalCodeService) ValidateMunicipality(event domain.LambdaEvent) (domain.ValidationResult, error) {
+	municipality, err := s.parseValidationInput(event, "municipality")
 	if err != nil {
 		return domain.ValidationResult{}, err
 	}
 
-	logger.Debug("PostalCodeService", "Validating municipio", map[string]interface{}{
-		"municipio": municipio,
+	logger.Debug("PostalCodeService", "Validating municipality", map[string]interface{}{
+		"municipality": municipality,
 	})
 
-	isValid := s.provider.ValidateMunicipio(municipio)
+	isValid := s.provider.ValidateMunicipality(municipality)
 
-	logger.Info("PostalCodeService", "Municipio validation result", map[string]interface{}{
-		"municipio": municipio,
-		"valid":     isValid,
+	logger.Info("PostalCodeService", "Municipality validation result", map[string]interface{}{
+		"municipality": municipality,
+		"valid":        isValid,
 	})
 
 	return domain.ValidationResult{
 		Valid: isValid,
-		Value: municipio,
+		Value: municipality,
 	}, nil
 }
 
@@ -313,13 +313,13 @@ func (s *PostalCodeService) AutocompletePostal(event domain.LambdaEvent) ([]doma
 	return results, nil
 }
 
-// AutocompleteMunicipio returns municipalities matching the given query (fuzzy search).
+// AutocompleteMunicipality returns municipalities matching the given query (fuzzy search).
 //
-// Performs a case-insensitive search through the municipio index, prioritizing
+// Performs a case-insensitive search through the municipality index, prioritizing
 // results that start with the query over those that contain it. Results are
 // sorted alphabetically with starts-with matches first.
 //
-// Performance: O(n) search through municipio index (~5-10ms).
+// Performance: O(n) search through municipality index (~5-10ms).
 //
 // Parameters:
 //   - event: LambdaEvent containing query and optional limit in the body
@@ -331,20 +331,20 @@ func (s *PostalCodeService) AutocompletePostal(event domain.LambdaEvent) ([]doma
 // Limits:
 //   - Default limit: 10 results
 //   - Maximum limit: 50 results (enforced automatically)
-func (s *PostalCodeService) AutocompleteMunicipio(event domain.LambdaEvent) ([]domain.AutocompleteResult, error) {
+func (s *PostalCodeService) AutocompleteMunicipality(event domain.LambdaEvent) ([]domain.AutocompleteResult, error) {
 	query, limit, err := s.parseAutocompleteInput(event, false)
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Debug("PostalCodeService", "Autocomplete municipio", map[string]interface{}{
+	logger.Debug("PostalCodeService", "Autocomplete municipality", map[string]interface{}{
 		"query": query,
 		"limit": limit,
 	})
 
-	results := s.provider.AutocompleteMunicipio(query, limit)
+	results := s.provider.AutocompleteMunicipality(query, limit)
 
-	logger.Info("PostalCodeService", "Autocomplete municipio results", map[string]interface{}{
+	logger.Info("PostalCodeService", "Autocomplete municipality results", map[string]interface{}{
 		"query":        query,
 		"limit":        limit,
 		"resultsCount": len(results),
@@ -364,8 +364,8 @@ func (s *PostalCodeService) parseValidationInput(event domain.LambdaEvent, field
 	var value string
 	if field == "postalCode" && body.PostalCode != nil {
 		value = *body.PostalCode
-	} else if field == "municipio" && body.Municipio != nil {
-		value = *body.Municipio
+	} else if field == "municipality" && body.Municipality != nil {
+		value = *body.Municipality
 	}
 
 	if value == "" {

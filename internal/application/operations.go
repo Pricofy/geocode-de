@@ -30,10 +30,10 @@ func GeocodeByPostalOperation(service *PostalCodeService, event domain.LambdaEve
 	}
 
 	logger.Info("GeocodeByPostalOperation", "Geocoding successful", map[string]interface{}{
-		"postalCode": result.PostalCode,
-		"municipio":  result.Municipio,
-		"provincia":  result.Provincia,
-		"source":     result.Source,
+		"postalCode":   result.PostalCode,
+		"municipality": result.Municipality,
+		"provincia":    result.Provincia,
+		"source":       result.Source,
 	})
 
 	body, _ := json.Marshal(result)
