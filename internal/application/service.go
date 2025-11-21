@@ -85,8 +85,8 @@ func (s *PostalCodeService) parseGeocodingInput(event domain.LambdaEvent) (posta
 	if body.PostalCode != nil {
 		postalCode = *body.PostalCode
 	}
-	if body.Municipality != nil {
-		municipality = *body.Municipality
+	if body.Municipio != nil {
+		municipality = *body.Municipio
 	}
 
 	return postalCode, municipality, nil
@@ -257,7 +257,7 @@ func (s *PostalCodeService) ValidatePostal(event domain.LambdaEvent) (domain.Val
 //   - ValidationResult with valid flag and the municipality value
 //   - error if input parsing fails
 func (s *PostalCodeService) ValidateMunicipality(event domain.LambdaEvent) (domain.ValidationResult, error) {
-	municipality, err := s.parseValidationInput(event, "municipality")
+	municipality, err := s.parseValidationInput(event, "municipio")
 	if err != nil {
 		return domain.ValidationResult{}, err
 	}
@@ -367,8 +367,8 @@ func (s *PostalCodeService) parseValidationInput(event domain.LambdaEvent, field
 	var value string
 	if field == "postalCode" && body.PostalCode != nil {
 		value = *body.PostalCode
-	} else if field == "municipality" && body.Municipality != nil {
-		value = *body.Municipality
+	} else if field == "municipio" && body.Municipio != nil {
+		value = *body.Municipio
 	}
 
 	if value == "" {

@@ -30,7 +30,7 @@ func TestHandler_GeocodeByPostal(t *testing.T) {
 		{
 			name: "valid municipio",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"geocode-by-postal","municipality":"Madrid"}`,
+				Body: `{"operation":"geocode-by-postal","municipio":"Madrid"}`,
 			},
 			wantStatus:  200,
 			wantSuccess: true,
@@ -197,7 +197,7 @@ func TestHandler_ValidateMunicipio(t *testing.T) {
 		{
 			name: "valid municipio",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"validate-municipality","municipality":"Madrid"}`,
+				Body: `{"operation":"validate-municipio","municipio":"Madrid"}`,
 			},
 			wantStatus: 200,
 			wantValid:  true,
@@ -205,7 +205,7 @@ func TestHandler_ValidateMunicipio(t *testing.T) {
 		{
 			name: "invalid municipio",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"validate-municipality","municipality":"NonExistentCity"}`,
+				Body: `{"operation":"validate-municipio","municipio":"NonExistentCity"}`,
 			},
 			wantStatus: 200,
 			wantValid:  false,
@@ -303,7 +303,7 @@ func TestHandler_AutocompleteMunicipio(t *testing.T) {
 		{
 			name: "valid query",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"autocomplete-municipality","query":"mad","limit":5}`,
+				Body: `{"operation":"autocomplete-municipio","query":"mad","limit":5}`,
 			},
 			wantStatus: 200,
 			wantCount:  5,

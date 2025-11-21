@@ -67,13 +67,13 @@ type LambdaResponse struct {
 // RequestBody represents the parsed request body from LambdaEvent.
 // Used for routing operations based on the "operation" field.
 type RequestBody struct {
-	Operation    string   `json:"operation"`
-	PostalCode   *string  `json:"postalCode,omitempty"`
-	Municipality *string  `json:"municipality,omitempty"`
-	Lat          *float64 `json:"lat,omitempty"`
-	Lon          *float64 `json:"lon,omitempty"`
-	Prefix       *string  `json:"prefix,omitempty"`
-	Query        *string  `json:"query,omitempty"`
-	Limit        *int     `json:"limit,omitempty"`
+	Operation  string   `json:"operation"`
+	PostalCode *string  `json:"postalCode,omitempty"`
+	Municipio  *string  `json:"municipio,omitempty"`
+	Lat        *float64 `json:"lat,omitempty"`
+	Lon        *float64 `json:"lon,omitempty"`
+	Prefix     *string  `json:"prefix,omitempty"`
+	Query      *string  `json:"query,omitempty"`
+	Limit      *int     `json:"limit,omitempty"`
 }
 

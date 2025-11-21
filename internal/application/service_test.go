@@ -27,7 +27,7 @@ func TestPostalCodeService_GeocodeByPostal(t *testing.T) {
 		{
 			name: "valid municipality",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"geocode-by-postal","municipality":"Madrid"}`,
+				Body: `{"operation":"geocode-by-postal","municipio":"Madrid"}`,
 			},
 			wantSuccess: true,
 			wantErr:     false,
@@ -222,7 +222,7 @@ func TestPostalCodeService_ValidateMunicipality(t *testing.T) {
 		{
 			name: "valid municipality",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"validate-municipality","municipality":"Madrid"}`,
+				Body: `{"operation":"validate-municipio","municipio":"Madrid"}`,
 			},
 			wantValid: true,
 			wantErr:   false,
@@ -230,7 +230,7 @@ func TestPostalCodeService_ValidateMunicipality(t *testing.T) {
 		{
 			name: "invalid municipality",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"validate-municipality","municipality":"NonExistentCity"}`,
+				Body: `{"operation":"validate-municipio","municipio":"NonExistentCity"}`,
 			},
 			wantValid: false,
 			wantErr:   false,
@@ -442,7 +442,7 @@ func TestPostalCodeService_EdgeCases(t *testing.T) {
 
 	t.Run("GeocodeByPostal with both postalCode and municipality", func(t *testing.T) {
 		event := domain.LambdaEvent{
-			Body: `{"operation":"geocode-by-postal","postalCode":"28001","municipality":"Madrid"}`,
+			Body: `{"operation":"geocode-by-postal","postalCode":"28001","municipio":"Madrid"}`,
 		}
 		result, err := service.GeocodeByPostal(event)
 		if err != nil {
@@ -533,7 +533,7 @@ service := NewPostalCodeService()
 
 t.Run("municipality not found after postal code not found", func(t *testing.T) {
 event := domain.LambdaEvent{
-Body: `{"operation":"geocode-by-postal","postalCode":"99999","municipality":"NonExistentCity"}`,
+Body: `{"operation":"geocode-by-postal","postalCode":"99999","municipio":"NonExistentCity"}`,
 }
 _, err := service.GeocodeByPostal(event)
 if err == nil {
@@ -543,7 +543,7 @@ t.Error("Expected error for non-existent municipality, got nil")
 
 t.Run("valid postal code with invalid municipality", func(t *testing.T) {
 event := domain.LambdaEvent{
-Body: `{"operation":"geocode-by-postal","postalCode":"28001","municipality":"NonExistentCity"}`,
+Body: `{"operation":"geocode-by-postal","postalCode":"28001","municipio":"NonExistentCity"}`,
 }
 result, err := service.GeocodeByPostal(event)
 if err != nil {

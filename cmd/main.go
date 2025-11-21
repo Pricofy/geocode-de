@@ -111,11 +111,11 @@ func (a *App) HandleRequest(ctx context.Context, event domain.LambdaEvent) (doma
 		return a.handleReverseGeocode(ctx, event)
 	case "validate-postal":
 		return a.handleValidatePostal(ctx, event)
-	case "validate-municipality":
+	case "validate-municipio":
 		return a.handleValidateMunicipality(ctx, event)
 	case "autocomplete-postal":
 		return a.handleAutocompletePostal(ctx, event)
-	case "autocomplete-municipality":
+	case "autocomplete-municipio":
 		return a.handleAutocompleteMunicipality(ctx, event)
 	default:
 		a.logger.Warn(fmt.Sprintf("Unknown operation requested: %s", operation), map[string]interface{}{

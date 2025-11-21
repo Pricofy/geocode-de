@@ -19,7 +19,7 @@ func TestValidateMunicipioOperation(t *testing.T) {
 		{
 			name: "valid municipality",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"validate-municipio","municipality":"Madrid"}`,
+				Body: `{"operation":"validate-municipio","municipio":"Madrid"}`,
 			},
 			wantStatusCode: 200,
 			wantValid:      true,
@@ -27,7 +27,7 @@ func TestValidateMunicipioOperation(t *testing.T) {
 		{
 			name: "invalid municipality",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"validate-municipio","municipality":"NonExistentCity"}`,
+				Body: `{"operation":"validate-municipio","municipio":"NonExistentCity"}`,
 			},
 			wantStatusCode: 200,
 			wantValid:      false,
