@@ -12,17 +12,13 @@ describe('Geocode ES Stack', () => {
   let template: Template;
 
   beforeEach(() => {
-    // Create dummy dist directory for tests
+    // Create dummy dist directory for tests (Go binary)
     const fs = require('fs');
     const path = require('path');
-    const dummyDir = path.join(__dirname, '../../dist/handlers');
-    fs.mkdirSync(dummyDir, { recursive: true });
-    fs.writeFileSync(path.join(dummyDir, 'geocode.js'), 'exports.handler = () => {}');
-    
-    // Create dummy resources directory
-    const resourcesDir = path.join(__dirname, '../../dist/resources');
-    fs.mkdirSync(resourcesDir, { recursive: true });
-    fs.writeFileSync(path.join(resourcesDir, 'postal-codes-es.json'), '{}');
+    const distDir = path.join(__dirname, '../../dist');
+    fs.mkdirSync(distDir, { recursive: true });
+    // Create dummy bootstrap binary (Go Lambda entry point)
+    fs.writeFileSync(path.join(distDir, 'bootstrap'), '#!/bin/sh\necho "dummy"');
     
     app = new cdk.App();
     stack = new GeocodeEsStack(app, 'TestStack', {

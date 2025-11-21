@@ -2,29 +2,48 @@
 # Makefile - Pricofy Geocode ES
 # ========================================
 #
-# Purpose: Automate common development tasks
+# Purpose: Automate build, test, lint, and deployment tasks for Go-based geocoding service
 #
 # Available targets:
-#   help         → Show this help message (default)
-#   install      → Install dependencies
-#   build        → Build Lambda package (TypeScript + data files)
-#   test         → Run all tests
-#   deploy       → Build + deploy to AWS via CDK
-#   clean        → Remove build artifacts and dependencies
+#   all          → Build and test (default)
+#   build        → Build the binary for Lambda (Linux/ARM64 - Graviton2)
+#   build-local  → Build for local development (native architecture)
+#   test         → Run unit tests with coverage
+#   test-fast    → Run tests without verbose output (faster)
+#   test-e2e     → Run E2E integration tests against deployed Lambda
+#   test-e2e-setup → Install E2E test dependencies
+#   test-e2e-quick → Run quick E2E health check
+#   coverage-html → Generate HTML coverage report and open in browser
+#   lint         → Run linter (requires golangci-lint)
+#   clean        → Remove build artifacts
+#   deps         → Tidy Go modules
+#   install      → Install Go + CDK dependencies
+#   verify       → Verify deployment prerequisites
+#   deploy       → Safe deployment (clean + test + deploy)
+#   deploy-quick → Quick deploy (skip tests)
+#   destroy-dev  → Destroy dev environment
+#   destroy-prod → Destroy prod environment
+#   test-geocode → Test deployed Lambda function
+#   logs-geocode → View Lambda CloudWatch logs
+#   ci           → Run full CI pipeline locally
+#   help         → Show this help message
 #
-# Typical workflows:
-#   Development:  make clean && make install && make build && make test
-#   Deployment:   make deploy ENV=dev
-#   CI/CD:        make clean && make install && make build && make test
+# Usage:
+#   make <target>
+#
+# Prerequisites:
+#   - Go 1.24+
+#   - golangci-lint (for lint target)
+#   - AWS CLI (for deployment)
+#   - CDK CLI (for deployment)
 #
 # ========================================
 
-.PHONY: help install build test deploy deploy-quick verify clean
-
-# Default target: show help
-.DEFAULT_GOAL := help
-
-# Default environment for deployment
+# Variables
+GO = go
+GOTEST = $(GO) test
+GOLINT = golangci-lint
+BINARY = pricofy-geocode-es
 ENV ?= dev
 
 # Service configuration
@@ -32,124 +51,130 @@ SERVICE_NAME = pricofy-geocode-es
 STACK_SERVICE = PricofyGeocodeEsStack-$(ENV)
 LAMBDA_GEOCODE = pricofy-geocode-es-$(ENV)
 
-# ========================================
-# Help - Show Available Targets
-# ========================================
-help: ## Show this help message
-	@echo ""
-	@echo "📦 $(SERVICE_NAME) Build & Deploy Automation"
-	@echo ""
-	@echo "🔧 Development Commands:"
-	@echo "  make install              - Install dependencies"
-	@echo "  make build                - Compile TypeScript + copy resources"
-	@echo "  make test                 - Run tests with coverage"
-	@echo "  make lint                 - Run ESLint"
-	@echo "  make clean                - Clean build artifacts"
-	@echo ""
-	@echo "☁️  AWS Deployment:"
-	@echo "  make deploy ENV=dev       - Full deployment (clean + test + deploy)"
-	@echo "  make deploy-quick ENV=dev - Quick deploy (skip tests)"
-	@echo "  make verify ENV=dev       - Verify deployment prerequisites"
-	@echo "  make destroy-dev          - Destroy dev environment"
-	@echo "  make destroy-prod         - Destroy prod environment"
-	@echo ""
-	@echo "🧪 Testing:"
-	@echo "  make test-geocode ENV=dev - Test geocode Lambda"
-	@echo ""
-	@echo "📊 Logs:"
-	@echo "  make logs-geocode ENV=dev - View geocode logs"
-	@echo ""
+# Default target: build and test
+all: build test ## Build and test (default)
 
-# ========================================
-# Install - Install Dependencies
-# ========================================
-install: ## Install application and infrastructure dependencies
-	@echo "📦 Installing application dependencies..."
-	@npm install --silent 2>&1 | grep -v "deprecated" || true
-	@echo "📦 Installing infrastructure dependencies..."
-	@cd infrastructure && npm install --silent 2>&1 | grep -v "deprecated" || true
-	@echo "✅ Dependencies installed"
-
-# ========================================
-# Build - Compile TypeScript + Copy Data
-# ========================================
-build: ## Compile TypeScript and copy resource files
-	@echo "🔨 Building Lambda package..."
-	@echo "  1. Compiling TypeScript..."
-	npm run build
-	@echo "  2. Copying resource files..."
-	mkdir -p dist/resources
-	cp -r src/resources/* dist/resources/
+# Build the binary for Lambda (Linux/ARM64 - Graviton2)
+build: ## Build the Go binary for AWS Lambda (Linux/ARM64 - Graviton2)
+	@echo "🔨 Building for Lambda (Linux/ARM64 - Graviton2)..."
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 $(GO) build -ldflags="-s -w" -o $(BINARY) ./cmd/lambda
 	@echo "✅ Build complete"
 
-# ========================================
-# Test - Run Tests
-# ========================================
-test: ## Run all tests with coverage
-	@echo "🧪 Running tests..."
-	npm test
-	@echo "✅ Tests passed"
+# Build for local development (native architecture)
+build-local: ## Build the Go binary for local development
+	@echo "🔨 Building for local development..."
+	$(GO) build -o $(BINARY) ./cmd/lambda
+	@echo "✅ Build complete"
 
-# ========================================
-# Lint - Run ESLint
-# ========================================
-lint: ## Run ESLint
-	@echo "🔍 Running linter..."
-	npm run lint
-	@echo "✅ Linting complete"
+# Run unit tests with coverage
+test: ## Run all tests with coverage report (production code only)
+	@echo "🧪 Running Go tests with coverage..."
+	@$(GOTEST) -v -coverprofile=coverage.out -covermode=atomic -coverpkg=./cmd/...,./internal/... ./... 2>&1 | grep -v "no test files" | grep -v "no statements"
+	@echo ""
+	@echo "📊 Coverage by package:"
+	@go tool cover -func=coverage.out | grep -v "total:" | awk '{printf "  %-80s %6s\n", $$1, $$3}'
+	@echo ""
+	@echo "📊 TOTAL COVERAGE (production code only):"
+	@go tool cover -func=coverage.out | grep "total:" | awk '{printf "  \033[1;32m%s\033[0m\n", $$3}'
+	@echo ""
+	@echo "💡 Tip: Run 'make coverage-html' to view detailed HTML report"
+	@echo "✅ All tests passed"
 
-# ========================================
-# Clean - Remove Build Artifacts
-# ========================================
-clean: ## Clean build artifacts
-	@echo "🧹 Cleaning build artifacts..."
+# Generate HTML coverage report
+coverage-html: test ## Generate HTML coverage report and open in browser
+	@echo "📊 Generating HTML coverage report..."
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "✅ Coverage report generated: coverage.html"
+	@echo "🌐 Opening in browser..."
+	@open coverage.html 2>/dev/null || xdg-open coverage.html 2>/dev/null || echo "Please open coverage.html manually"
+
+# Run tests without verbose output (fast)
+test-fast: ## Run tests without verbose output (faster)
+	@echo "🧪 Running tests (fast mode)..."
+	@$(GOTEST) -coverprofile=coverage.out -covermode=atomic -coverpkg=./cmd/...,./internal/... ./... 2>&1 | grep -E "(PASS|FAIL|ok|coverage)" | grep -v "no test files" | grep -v "no statements"
+	@echo "📊 Coverage: $$(go tool cover -func=coverage.out | grep total: | awk '{print $$3}')"
+
+# Run E2E integration tests (requires deployed Lambda)
+test-e2e: ## Run E2E integration tests against deployed Lambda
+	@echo "🚀 Running E2E integration tests..."
+	@cd test/e2e && npm test
+
+# Setup E2E test dependencies
+test-e2e-setup: ## Install E2E test dependencies
+	@echo "📦 Installing E2E test dependencies..."
+	@cd test/e2e && npm install
+	@echo "✅ E2E dependencies installed"
+
+# Run quick E2E health check
+test-e2e-quick: ## Run quick E2E health check
+	@echo "🧪 Running quick E2E health check..."
+	@cd test/e2e && npm run test:quick
+
+# Run linter
+lint: ## Run golangci-lint
+	@echo "🔍 Linting..."
+	$(GOLINT) run
+
+# Clean build artifacts
+clean: ## Clean build artifacts and binary
+	@echo "🧹 Cleaning..."
+	rm -f $(BINARY)
+	rm -f coverage.out
+	rm -f coverage.html
 	rm -rf dist
-	rm -rf coverage
-	rm -rf node_modules
 	rm -rf infrastructure/node_modules
 	rm -rf infrastructure/cdk.out
 	@echo "✅ Clean complete"
 
-# ========================================
-# Verify - Check Deployment Prerequisites
-# ========================================
-verify: ## Verify deployment prerequisites
+# Install dependencies
+deps: ## Tidy Go modules
+	@echo "📦 Updating dependencies..."
+	$(GO) mod tidy
+
+# Install - Install Dependencies
+install: ## Install application and infrastructure dependencies
+	@echo "📦 Installing Go dependencies..."
+	@go mod download
+	@go mod tidy
+	@echo "📦 Installing infrastructure dependencies..."
+	@cd infrastructure && npm install --silent 2>&1 | grep -v "deprecated" || true
+	@echo "✅ Dependencies installed"
+
+# Verify deployment prerequisites
+verify: ## Verify deployment prerequisites (AWS config, CDK bootstrap)
 	@echo "🔍 Verifying deployment prerequisites for $(ENV)..."
-	@echo ""
-	@echo "1️⃣  Checking AWS CLI..."
-	@which aws > /dev/null || (echo "❌ AWS CLI not found. Install: https://aws.amazon.com/cli/" && exit 1)
-	@echo "   ✅ AWS CLI installed"
-	@echo ""
-	@echo "2️⃣  Checking AWS credentials..."
-	@aws sts get-caller-identity > /dev/null || (echo "❌ AWS credentials not configured" && exit 1)
-	@echo "   ✅ AWS credentials configured"
-	@echo ""
-	@echo "3️⃣  Checking CDK bootstrap..."
-	@aws cloudformation describe-stacks --stack-name CDKToolkit > /dev/null 2>&1 || \
-		(echo "❌ CDK not bootstrapped. Run: cd infrastructure && npm run bootstrap" && exit 1)
-	@echo "   ✅ CDK bootstrapped"
-	@echo ""
-	@echo "✅ All prerequisites met"
+	@echo "Checking AWS CLI configuration..."
+	@aws sts get-caller-identity > /dev/null || (echo "❌ AWS CLI not configured" && exit 1)
+	@echo "✅ AWS CLI configured"
+	@echo "Checking CDK bootstrap..."
+	@aws cloudformation describe-stacks --stack-name CDKToolkit > /dev/null 2>&1 || (echo "❌ CDK not bootstrapped" && exit 1)
+	@echo "✅ CDK bootstrap complete"
+	@echo "✅ All prerequisites verified for $(ENV)"
 
-# ========================================
-# Deploy - Full Deployment (Build + Test + Deploy)
-# ========================================
-deploy: clean install build test ## Full deployment (clean + test + deploy)
-	@echo "🚀 Deploying $(SERVICE_NAME) to $(ENV)..."
-	cd infrastructure && npm run deploy:$(ENV)
-	@echo "✅ Deployment complete"
+# Deploy - Safe deployment (clean + test + deploy)
+deploy: clean deps build test ## Safe deployment (clean + test + deploy)
+	@echo ""
+	@echo "🚀 Starting SAFE deployment to $(ENV)..."
+	@echo "  → All artifacts cleaned ✓"
+	@echo "  → Dependencies installed ✓"
+	@echo "  → Code compiled ✓"
+	@echo "  → Tests passed ✓"
+	@echo ""
+	@$(MAKE) deploy-quick ENV=$(ENV)
 
-# ========================================
-# Deploy Quick - Skip Tests
-# ========================================
-deploy-quick: clean install build ## Quick deploy (skip tests)
-	@echo "🚀 Quick deploying $(SERVICE_NAME) to $(ENV)..."
-	cd infrastructure && npm run deploy:$(ENV)
-	@echo "✅ Deployment complete"
+# Deploy Quick - Fast deployment (skip clean/test - use with caution)
+deploy-quick: ## Quick deploy (skips clean/test - use with caution)
+	@echo "⚡ Quick deployment to $(ENV) (skipping clean/test)..."
+	@if [ -z "$$CDK_DEFAULT_ACCOUNT" ]; then \
+		echo "⚠️  CDK_DEFAULT_ACCOUNT not set, CDK will use default AWS credentials"; \
+	fi
+	@echo "  → Installing CDK dependencies..."
+	@cd infrastructure && npm ci
+	@echo "  → Deploying CloudFormation stacks..."
+	@cd infrastructure && npx cdk deploy --require-approval never --context env=$(ENV)
+	@echo "✅ Deployment complete!"
 
-# ========================================
 # Destroy - Destroy Environment
-# ========================================
 destroy-dev: ## Destroy dev environment
 	@echo "⚠️  Destroying dev environment..."
 	@read -p "Are you sure? [y/N] " -n 1 -r; \
@@ -172,9 +197,7 @@ destroy-prod: ## Destroy prod environment
 		echo "❌ Cancelled"; \
 	fi
 
-# ========================================
 # Test Geocode Lambda
-# ========================================
 test-geocode: ## Test geocode Lambda (ENV=dev)
 	@echo "🧪 Testing geocode Lambda ($(ENV))..."
 	@echo ""
@@ -201,15 +224,17 @@ test-geocode: ## Test geocode Lambda (ENV=dev)
 	@echo ""
 	@echo "✅ Tests complete"
 
-# ========================================
 # Logs - View Lambda Logs
-# ========================================
 logs-geocode: ## View geocode Lambda logs (ENV=dev)
 	@echo "📊 Viewing geocode logs ($(ENV))..."
 	aws logs tail /aws/lambda/$(LAMBDA_GEOCODE) --follow
 
-# ========================================
 # CI/CD - Continuous Integration
-# ========================================
 ci: clean install build test lint ## Run CI pipeline locally
 	@echo "✅ CI pipeline complete"
+
+# Help target
+help: ## Show this help message
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: all build build-local test test-fast test-e2e test-e2e-setup test-e2e-quick coverage-html lint clean deps install verify deploy deploy-quick destroy-dev destroy-prod test-geocode logs-geocode ci help

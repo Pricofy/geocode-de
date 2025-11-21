@@ -21,29 +21,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.branch || github.ref }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      # Setup Go (primary language)
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          node-version: '20'
-          
+          go-version: '1.25'
+          cache: true
 
+      # Clean previous artifacts
       - name: Clean
         run: make clean
 
-      - name: Install dependencies
+      # Install Go dependencies
+      - name: Install Go dependencies
         run: make install
 
+      # Build Go binary
       - name: Build
         run: make build
 
-      - name: Run tests
+      # Run Go tests with coverage (via Makefile)
+      - name: Run tests with coverage
         run: make test
         continue-on-error: true
 
+      # Run linter
+      - name: Run linter
+        run: make lint
+        continue-on-error: true
+
+      # SonarCloud analysis
       - name: SonarCloud Scan
         if: always()
         uses: SonarSource/sonarcloud-github-action@v3.1.0

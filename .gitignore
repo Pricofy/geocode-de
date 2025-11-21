@@ -1,20 +1,23 @@
-# Dependencies
-node_modules/
-package-lock.json
+# Go binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+go.work
 
 # Build
 dist/
-*.js
-*.d.ts
-*.js.map
-*.tsbuildinfo
-!jest.config.js
+*.o
+*.a
 
-# CDK
+# CDK (infrastructure uses TypeScript)
 infrastructure/cdk.out/
+infrastructure/node_modules/
 infrastructure/*.js
-!infrastructure/jest.config.js
 infrastructure/*.d.ts
+!infrastructure/jest.config.js
 
 # GeoNames (downloaded files, not the generated JSON)
 scripts/ES.txt
@@ -23,7 +26,7 @@ scripts/readme.txt
 
 # Tests
 coverage/
-.nyc_output/
+coverage.out
 *.lcov
 
 # IDEs
@@ -40,5 +43,3 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
-
-src/resources/*.gz

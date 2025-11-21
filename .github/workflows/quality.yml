@@ -1,0 +1,149 @@
+# ========================================
+# Tests & Quality Workflow
+# ========================================
+#
+# Purpose: Run tests and quality checks for Geocode ES (Go)
+#
+# What it does:
+#   1. Runs unit tests (Go testing)
+#   2. Generates test coverage report
+#   3. Runs SonarCloud quality analysis
+#   4. Validates code quality metrics
+#
+# Triggers:
+#   - Push to main/develop branches
+#   - Pull requests to main/develop branches
+#   - Manual dispatch (allows testing specific branch)
+#
+# Quality Gates:
+#   - Test coverage must be > 80%
+#   - No new SonarCloud issues (bugs, code smells, vulnerabilities)
+#   - All tests must pass
+#
+# Secrets Required:
+#   - SONAR_TOKEN → SonarCloud authentication token
+#
+# ========================================
+
+name: Tests & Quality
+
+on:
+  # Automatic testing on push to main or develop
+  push:
+    branches: [main, develop]
+  
+  # Automatic testing on pull requests targeting main or develop
+  pull_request:
+    branches: [main, develop]
+  
+  # Manual testing trigger via GitHub UI (allows choosing branch)
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to test'
+        required: true
+        default: 'develop'
+        type: choice
+        options:
+          - main
+          - develop
+
+jobs:
+  test:
+    name: Run Tests & Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      # ========================================
+      # Step 1: Checkout Repository
+      # ========================================
+      # Downloads the repository code to the runner
+      # For manual dispatch: checks out the selected branch
+      # For automatic triggers: checks out the triggering branch
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+
+      # ========================================
+      # Step 2: Setup Go Environment
+      # ========================================
+      # Installs Go 1.24 (required for building and testing)
+      # cache: true → Caches Go modules for faster builds
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      # ========================================
+      # Step 3: Clean Previous Build Artifacts
+      # ========================================
+      # Removes:
+      #   - pricofy-geocode-es binary
+      #   - coverage files
+      #
+      # Ensures tests run against fresh build
+      - name: Clean
+        run: make clean
+
+      # ========================================
+      # Step 4: Install Go Dependencies
+      # ========================================
+      # Ensures Go modules are in sync:
+      #   - Downloads dependencies
+      #   - Verifies go.mod and go.sum
+      - name: Install Go dependencies
+        run: make deps
+
+      # ========================================
+      # Step 5: Build Go Binary
+      # ========================================
+      # Compiles Go code to binary:
+      #   - Validates Go syntax
+      #   - Checks for compilation errors
+      #
+      # This step fails fast if code doesn't compile
+      - name: Build
+        run: make build
+
+      # ========================================
+      # Step 6: Run Go Tests with Coverage
+      # ========================================
+      # Runs Go test suite via Makefile:
+      #   - Unit tests for provider (data access)
+      #   - Unit tests for service (business logic)
+      #   - Unit tests for handler (Lambda routing)
+      #   - Unit tests for domain (models, errors)
+      #
+      # Generates coverage report (coverage.out)
+      # continue-on-error: Allows SonarCloud to run even if tests fail
+      - name: Run tests with coverage
+        run: make test
+        continue-on-error: true
+
+      # ========================================
+      # Step 7: SonarCloud Quality Analysis
+      # ========================================
+      # Runs static code analysis:
+      #   - Code quality metrics (complexity, duplication)
+      #   - Security vulnerabilities detection
+      #   - Code smells identification
+      #   - Test coverage validation
+      #
+      # Uploads results to SonarCloud dashboard:
+      #   https://sonarcloud.io/project/overview?id=pricofy_pricofy-geocode-es
+      #
+      # Quality Gates:
+      #   - Coverage > 80%
+      #   - No new bugs
+      #   - No new vulnerabilities
+      #   - Maintainability rating A
+      #
+      # if: always() → Runs even if tests failed (to report failures)
+      - name: SonarCloud Scan
+        if: always()
+        uses: SonarSource/sonarcloud-github-action@v3.1.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+

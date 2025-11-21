@@ -4,13 +4,14 @@ This directory contains the script to convert GeoNames postal codes data to JSON
 
 ## Files
 
-- **convert-postal-codes.js** - Conversion script (committed)
 - **ES.txt** - GeoNames data (downloaded, not committed)
 - **ES.zip** - Downloaded archive (not committed)
 
+**Note:** The conversion script (`convert-postal-codes.js`) was removed during the migration to Go. The postal codes database is now embedded in the Go binary via `//go:embed`.
+
 ## Purpose
 
-Generates `../src/resources/postal-codes-es.json` with 11,150 Spanish postal codes.
+The postal codes database (`postal-codes-es.json`) is embedded in the Go binary at compile time. This directory contains the original GeoNames data for reference and potential future updates.
 
 Used by:
 - `geocode-by-postal` operation - Forward geocoding (postal code/city → coords)
@@ -33,20 +34,16 @@ You **don't need to run this** unless:
 
 ### Regenerate (if needed)
 
-```bash
-cd scripts
+**Note:** With the Go implementation, the postal codes database is embedded in the binary. To update:
 
-# 1. Download GeoNames Spanish postal codes
-curl -O http://download.geonames.org/export/zip/ES.zip
-unzip ES.zip
+1. Download and convert GeoNames data (requires Node.js script or manual conversion)
+2. Update `internal/infrastructure/provider/postal-codes-es.json`
+3. Rebuild the Go binary: `make build`
 
-# 2. Convert to JSON
-node convert-postal-codes.js
+The embedded file is located at: `internal/infrastructure/provider/postal-codes-es.json`
 
-# Output: ../src/resources/postal-codes-es.json
-# Size: ~1.31 MB
-# Entries: 11,150 unique postal codes
-```
+**Size:** ~1.31 MB  
+**Entries:** 11,150 unique postal codes
 
 ## Data Source
 
@@ -92,10 +89,11 @@ node convert-postal-codes.js
 - Time: ~2 seconds
 - Size: 1.31 MB
 
-**Runtime (Lambda):**
-- Load time: ~50ms (first cold start)
+**Runtime (Lambda - Go):**
+- Load time: ~50ms (first cold start, data embedded in binary)
 - Lookup time: <1ms (postal code), ~5ms (municipio)
-- Memory: 512MB Lambda
+- Memory: 128MB Lambda (50% reduction from Node.js)
+- Cold start: ~200ms (3-5x faster than Node.js ~500ms)
 
 ## Maintenance
 

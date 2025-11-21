@@ -53,15 +53,15 @@ export class GeocodeEsStack extends cdk.Stack {
     
     this.geocodeFunction = new lambda.Function(this, 'GeocodeFunction', {
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist')),
-      handler: 'handlers/geocode.handler',
-      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'bootstrap', // Go Lambda entry point
+      runtime: lambda.Runtime.PROVIDED_AL2023, // Go custom runtime (AL2023)
+      architecture: lambda.Architecture.ARM_64, // Graviton2: 20% cheaper, better performance
       timeout: cdk.Duration.seconds(10),
-      memorySize: 256, // 256MB is sufficient for static postal code operations
+      memorySize: 128, // 128MB is sufficient for Go (more memory-efficient than Node.js)
       environment: {
         ENVIRONMENT: props.environment,
-        NODE_ENV: 'production',
       },
-      description: 'Spanish postal code geocoding operations (routing handler)',
+      description: 'Spanish postal code geocoding operations (routing handler) - Go implementation',
       functionName: `pricofy-geocode-es-${props.environment}`,
       logGroup: logGroup,
       tracing: lambda.Tracing.ACTIVE, // X-Ray tracing for observability

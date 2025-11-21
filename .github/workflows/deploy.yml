@@ -82,15 +82,36 @@ jobs:
           fi
 
       # ========================================
-      # Step 3: Setup Node.js Environment
+      # Step 3: Setup Go Environment
       # ========================================
+      # Installs Go 1.24 (required for Lambda binary compilation)
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      # ========================================
+      # Step 4: Setup Node.js Environment
+      # ========================================
+      # Installs Node.js 20.x (required for CDK infrastructure deployment)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       # ========================================
-      # Step 4: Configure AWS Credentials (OIDC)
+      # Step 5: Pre-pull SAM Build Image
+      # ========================================
+      # Pulls the SAM build image used by CDK for Lambda bundling
+      # Uses Docker layer cache from previous step
+      # Prevents CDK from pulling the image during deployment
+      - name: Pre-pull SAM build image
+        run: |
+          docker pull public.ecr.aws/sam/build-provided.al2023:latest
+
+      # ========================================
+      # Step 6: Configure AWS Credentials (OIDC)
       # ========================================
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -99,7 +120,7 @@ jobs:
           aws-region: eu-west-1
 
       # ========================================
-      # Step 5: Verify Deployment Prerequisites
+      # Step 7: Verify Deployment Prerequisites (REQUIRED)
       # ========================================
       # Validates prerequisites before deployment:
       #   - AWS CLI configured
@@ -110,46 +131,44 @@ jobs:
         run: make verify ENV=${{ steps.env.outputs.environment }}
 
       # ========================================
-      # Step 6: Build and Deploy Service
+      # Step 8: Deploy Geocode ES (via Makefile)
       # ========================================
-      # Build and deploy process:
-      #   1. Clean: Removes all build artifacts
-      #   2. Install: Fresh dependency installation
-      #   3. Build: Compiles Lambda code + copies postal codes data
-      #   4. Deploy: Compiles CDK and deploys to AWS
+      # CRITICAL: Uses 'make deploy' which includes:
+      #   1. Clean: Removes previous artifacts
+      #   2. Install: Go dependencies (go mod tidy)
+      #   3. Build: Compiles Go binary for Lambda (Linux/AMD64)
+      #   4. Test: Runs test suite (BLOCKS deployment if fails)
+      #   5. Deploy: CDK deployment to AWS
+      #
+      # This ensures tests ALWAYS run before deployment.
+      # No code reaches production without passing tests.
       #
       # What gets deployed:
-      #   - Single Lambda function (pricofy-geocode-es-{env})
+      #   - Single Lambda function (Go binary with custom runtime)
       #   - IAM roles and policies
       #   - CloudWatch log groups
-      #
-      # Data:
-      #   - 11,150 Spanish postal codes (static JSON, 1.31MB)
-      #   - No external dependencies
-      #   - No layers required
-      - name: Build Lambda package
-        run: make clean && make install && make build
-      
+      #   - Data: 11,150 Spanish postal codes (embedded in binary)
       - name: Deploy Geocode ES to ${{ steps.env.outputs.environment }}
         env:
           CDK_DEFAULT_ACCOUNT: ${{ steps.env.outputs.account_id }}
           CDK_DEFAULT_REGION: eu-west-1
-        run: make deploy-quick ENV=${{ steps.env.outputs.environment }}
+        run: make deploy ENV=${{ steps.env.outputs.environment }}
 
       # ========================================
-      # Step 7: Notify Deployment Status
+      # Step 9: Notify Deployment Status
       # ========================================
       - name: Notify deployment status
         if: always()
         run: |
           if [ ${{ job.status }} == 'success' ]; then
             echo "✅ Geocode ES deployed successfully to ${{ steps.env.outputs.environment }}"
-            echo "Complete process: clean → install → build → deploy"
+            echo "Complete process: clean → install → build → test → deploy (via make deploy)"
             echo ""
             echo "📊 Deployed:"
             echo "   - Single Lambda: pricofy-geocode-es-${{ steps.env.outputs.environment }}"
+            echo "   - Runtime: Go 1.25 (PROVIDED_AL2023)"
             echo "   - 6 operations (geocode, reverse, validate x2, autocomplete x2)"
-            echo "   - 11,150 Spanish postal codes"
+            echo "   - 11,150 Spanish postal codes (embedded)"
           else
             echo "❌ Geocode ES deployment failed"
             exit 1

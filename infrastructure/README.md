@@ -7,9 +7,9 @@ This directory contains the AWS CDK infrastructure-as-code for deploying the **p
 The infrastructure is defined using AWS CDK (Cloud Development Kit) and deploys:
 
 - **Lambda Function**: Single function (`pricofy-geocode-es-{env}`) with internal routing
-  - Handler: `handlers/geocode.handler`
-  - Runtime: Node.js 20.x
-  - Memory: 256 MB
+  - Handler: `bootstrap` (Go binary entry point)
+  - Runtime: `PROVIDED_AL2023` (Go custom runtime)
+  - Memory: 128 MB (optimized for Go, reduced from 256MB Node.js)
   - Timeout: 10 seconds
   - Architecture: x86_64
 
@@ -20,9 +20,10 @@ Unlike `pricofy-location-service`, this service uses a **single Lambda with inte
 ```
 ┌─────────────────────────────────────┐
 │  pricofy-geocode-es Lambda          │
+│  (Go binary: bootstrap)             │
 │                                     │
 │  ┌───────────────────────────────┐ │
-│  │  geocode.handler              │ │
+│  │  handler.Handler()             │ │
 │  │  (Route by operation field)   │ │
 │  └───────────────┬───────────────┘ │
 │                  │                  │
@@ -70,9 +71,15 @@ This service is NOT a REST API - it's invoked directly by `pricofy-location-serv
 
 1. AWS CLI configured
 2. CDK bootstrapped in target account/region
-3. Dependencies installed:
+3. Go 1.21+ installed
+4. Dependencies installed:
    ```bash
-   npm install
+   # From project root
+   make install
+   
+   # Or manually
+   go mod download
+   cd infrastructure && npm install
    ```
 
 ### Deploy via Make (Recommended)
@@ -125,9 +132,10 @@ These are used by `pricofy-location-service` to invoke the geocode operations.
 ## Cost Optimization
 
 This service is optimized for minimal cost:
-- Static data (no database)
-- Small memory footprint (256 MB)
+- Static data (no database, embedded in binary)
+- Small memory footprint (128 MB, 50% reduction from Node.js)
 - Fast execution (typically < 100ms)
+- Fast cold starts (~200ms vs ~500ms Node.js)
 - Single Lambda (shared resources)
 
 ## Monitoring
@@ -145,12 +153,13 @@ X-Ray traces:
 
 ### Lambda Can't Find Data File
 
-**Problem**: `postal-codes-es.json` not included in deployment package
+**Problem**: This should not occur with Go implementation - data is embedded in binary via `//go:embed`
 
-**Solution**: Ensure `make build` copies data files:
+**Solution**: If issues occur, ensure `make build` compiles correctly:
 ```bash
 make clean
 make build
+ls -lh dist/bootstrap  # Verify binary exists
 ```
 
 ### Stack Deployment Fails
@@ -165,6 +174,8 @@ make build
 cd infrastructure && npm install && npm run build
 cdk deploy GeocodeEsStack-dev --context environment=dev
 ```
+
+**Note**: The Go binary (`dist/bootstrap`) must be built before CDK deployment. CDK packages the binary from `dist/` directory.
 
 ## Related Documentation
 

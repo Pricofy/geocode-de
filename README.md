@@ -2,8 +2,7 @@
 
 Spanish postal code geocoding and validation microservice for Pricofy.
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org/)
+[![Go](https://img.shields.io/badge/Go-1.24+-00ADD8.svg)](https://golang.org/)
 [![AWS Lambda](https://img.shields.io/badge/AWS-Lambda-orange.svg)](https://aws.amazon.com/lambda/)
 [![License](https://img.shields.io/badge/License-Private-red.svg)]()
 
@@ -18,11 +17,11 @@ Provides **Spanish postal code geocoding, validation, and autocomplete** for Pri
 - **Autocomplete Postal Code**: Prefix-based search (sorted array, <5ms)
 - **Autocomplete Municipality**: Fuzzy search (starts-with priority, <10ms)
 
-**Data Source:** Static database of **11,150 Spanish postal codes** from GeoNames.
+**Data Source:** Static database of **11,150 Spanish postal codes** from GeoNames (embedded in binary).
 
 **Architecture:** Single Lambda function invoked directly by `pricofy-location-service` via AWS Lambda SDK (no API Gateway).
 
-**Performance:** <1ms postal lookup, ~10-20ms reverse geocode, <5ms autocomplete.
+**Performance:** <1ms postal lookup, ~10-20ms reverse geocode, <5ms autocomplete. **3-5x faster cold starts than Node.js (~200ms vs ~500ms)**.
 
 ---
 
@@ -141,15 +140,20 @@ POST { "operation": "autocomplete-municipio", "query": "mad", "limit": 5 }
 ## 📦 Installation
 
 ```bash
-# Install dependencies
+# Install dependencies (Go + CDK)
 make install
 
-# Build Lambda package
+# Build Lambda package (compiles Go to Linux AMD64 binary)
 make build
 
 # Run tests
 make test
 ```
+
+**Prerequisites:**
+- Go 1.21 or later
+- AWS CDK CLI (for deployment)
+- AWS CLI (for testing deployed functions)
 
 ---
 
@@ -158,8 +162,9 @@ make test
 ### Run Tests Locally
 
 ```bash
-npm test                 # Run all tests with coverage
-npm run test:watch       # Watch mode
+make test                # Run all tests with coverage
+go test ./test/... -v    # Run tests with verbose output
+go test ./test/... -cover # Run tests with coverage report
 ```
 
 ### Test Lambda (After Deployment)
@@ -236,30 +241,28 @@ make deploy ENV=dev
 
 ```
 pricofy-geocode-es/
-├── src/
-│   ├── handlers/
-│   │   └── geocode.ts              # Routing handler
-│   ├── operations/                  # Operation implementations
-│   │   ├── geocode-by-postal.ts
-│   │   ├── reverse-geocode.ts
-│   │   ├── validate-postal.ts
-│   │   ├── validate-municipio.ts
-│   │   ├── autocomplete-postal.ts
-│   │   └── autocomplete-municipio.ts
-│   ├── services/
-│   │   └── postal-code-service.ts   # Business logic
-│   ├── providers/
-│   │   └── postal-code-provider.ts  # Data access + indices
-│   ├── types/
-│   │   ├── index.ts                 # Type definitions
-│   │   ├── errors.ts                # Custom errors
-│   │   └── constants.ts             # Constants
-│   ├── utils/
-│   │   ├── logger.ts                # Structured logging
-│   │   └── cors.ts                  # CORS headers
-│   └── data/
-│       └── postal-codes-es.json     # 11,150 postal codes
-├── test/                             # Unit tests
+├── cmd/
+│   └── lambda/
+│       └── main.go                   # Lambda entry point
+├── internal/
+│   ├── domain/
+│   │   ├── models.go                 # Domain types
+│   │   ├── errors.go                 # Custom errors
+│   │   └── constants.go             # Constants
+│   ├── application/
+│   │   ├── service.go                # Business logic
+│   │   └── operations.go            # Operation handlers
+│   ├── infrastructure/
+│   │   ├── provider/
+│   │   │   ├── postal_provider.go   # Data access + indices
+│   │   │   └── postal-codes-es.json  # Embedded postal codes
+│   │   ├── handler/
+│   │   │   └── lambda_handler.go    # Lambda routing handler
+│   │   └── logger/
+│   │       └── logger.go             # Structured logging
+├── test/
+│   ├── unit/                         # Unit tests
+│   └── integration/                 # Integration tests
 ├── infrastructure/                   # CDK infrastructure
 └── api/                              # OpenAPI spec
 ```
@@ -268,10 +271,10 @@ pricofy-geocode-es/
 
 ```bash
 make help          # Show all commands
-make install       # Install dependencies
-make build         # Compile TypeScript + copy data
-make test          # Run tests
-make lint          # Run linter
+make install       # Install dependencies (Go + CDK)
+make build         # Compile Go to Linux AMD64 binary
+make test          # Run tests with coverage
+make lint          # Run golangci-lint
 make clean         # Clean artifacts
 make deploy        # Full deployment
 make logs-geocode  # View Lambda logs

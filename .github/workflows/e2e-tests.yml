@@ -1,0 +1,146 @@
+# ========================================
+# E2E Tests Workflow
+# ========================================
+#
+# Purpose: Run end-to-end integration tests against deployed Lambda
+#
+# What it does:
+#   1. Runs comprehensive integration tests via AWS Lambda SDK
+#   2. Measures execution time for each test
+#   3. Validates all 6 operations (geocode, reverse, validate x2, autocomplete x2)
+#   4. Reports pass/fail status
+#
+# Triggers:
+#   - After successful deployment (workflow_run from deploy.yml)
+#   - Manual dispatch (allows testing specific environment)
+#   - Schedule (daily at 2 AM UTC for monitoring)
+#
+# Requirements:
+#   - Lambda must be deployed and accessible
+#   - AWS credentials with lambda:InvokeFunction permission
+#   - Configured geocoding service
+#
+# Secrets Required:
+#   - AWS_ACCOUNT_ID_DEV → AWS account ID for dev
+#   - AWS_ACCOUNT_ID_PROD → AWS account ID for prod
+#   - AWS_ROLE_ARN_DEV → IAM role ARN for dev
+#   - AWS_ROLE_ARN_PROD → IAM role ARN for prod
+#
+# Environment Variables:
+#   - AWS_REGION → AWS region (default: eu-west-1)
+#   - LAMBDA_FUNCTION_NAME → Lambda function name (default: pricofy-geocode-es)
+#
+# ========================================
+
+name: E2E Integration Tests
+
+on:
+  # Automatic trigger after successful deployment
+  workflow_run:
+    workflows: ["Deploy Geocode ES"]
+    types:
+      - completed
+    branches: [main, develop]
+
+  # Manual trigger via GitHub UI
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to test'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+
+  # Scheduled daily health check
+  schedule:
+    - cron: '0 2 * * *' # Daily at 2 AM UTC
+
+jobs:
+  e2e-tests:
+    name: Run E2E Integration Tests
+    runs-on: ubuntu-latest
+    # Skip if deployment workflow failed
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      # ========================================
+      # Step 1: Checkout Repository
+      # ========================================
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # ========================================
+      # Step 2: Determine Target Environment
+      # ========================================
+      - name: Determine environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+            if [ "${{ inputs.environment }}" == "prod" ]; then
+              echo "account_id=${{ secrets.AWS_ACCOUNT_ID_PROD }}" >> $GITHUB_OUTPUT
+              echo "role_arn=${{ secrets.AWS_ROLE_ARN_PROD }}" >> $GITHUB_OUTPUT
+            else
+              echo "account_id=${{ secrets.AWS_ACCOUNT_ID_DEV }}" >> $GITHUB_OUTPUT
+              echo "role_arn=${{ secrets.AWS_ROLE_ARN_DEV }}" >> $GITHUB_OUTPUT
+            fi
+          else
+            # Default to dev for scheduled runs and workflow_run
+            echo "environment=dev" >> $GITHUB_OUTPUT
+            echo "account_id=${{ secrets.AWS_ACCOUNT_ID_DEV }}" >> $GITHUB_OUTPUT
+            echo "role_arn=${{ secrets.AWS_ROLE_ARN_DEV }}" >> $GITHUB_OUTPUT
+          fi
+
+      # ========================================
+      # Step 3: Configure AWS Credentials
+      # ========================================
+      # Uses OIDC for secure authentication
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ steps.env.outputs.role_arn }}
+          aws-region: eu-west-1
+
+      # ========================================
+      # Step 4: Setup Node.js Environment
+      # ========================================
+      # Required for Jest and AWS SDK
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: test/e2e/package-lock.json
+
+      # ========================================
+      # Step 5: Install E2E Test Dependencies
+      # ========================================
+      # Uses Makefile for consistent dependency management
+      - name: Install E2E dependencies
+        run: make test-e2e-setup
+
+      # ========================================
+      # Step 6: Run E2E Tests
+      # ========================================
+      # Uses Makefile to run tests with proper environment
+      - name: Run E2E tests
+        env:
+          AWS_REGION: eu-west-1
+          LAMBDA_FUNCTION_NAME: pricofy-geocode-es-${{ steps.env.outputs.environment }}
+          TEST_TIMEOUT: 60000
+        run: make test-e2e
+
+      # ========================================
+      # Step 7: Notify on Failure
+      # ========================================
+      # Fails the workflow if tests failed
+      - name: Fail workflow if tests failed
+        if: failure()
+        run: |
+          echo "❌ E2E tests failed"
+          echo "Check workflow logs for details"
+          exit 1
+

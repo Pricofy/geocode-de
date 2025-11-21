@@ -1,0 +1,41 @@
+{
+  "name": "pricofy-geocode-es-e2e",
+  "version": "1.0.0",
+  "description": "End-to-end tests for pricofy-geocode-es Lambda function",
+  "private": true,
+  "scripts": {
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --runInBand --verbose",
+    "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
+    "test:quick": "NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='Health Check'",
+    "test:geocode": "NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='Geocode by Postal'",
+    "test:reverse": "NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='Reverse Geocode'",
+    "test:validate": "NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='Validate'",
+    "test:autocomplete": "NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='Autocomplete'"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.10.6",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@aws-sdk/client-lambda": "^3.651.1"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/*.test.ts"
+    ],
+    "testTimeout": 60000,
+    "verbose": true,
+    "transformIgnorePatterns": [
+      "node_modules/(?!(@aws-sdk|@smithy)/)"
+    ],
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    }
+  }
+}
+
