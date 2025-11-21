@@ -22,19 +22,19 @@ func (e *LocationError) Error() string {
 type PostalCodeNotFoundError struct {
 	LocationError
 	PostalCode string
-	Municipio  string
+	Municipality  string
 }
 
 // NewPostalCodeNotFoundError creates a new PostalCodeNotFoundError.
 // If postalCode is provided, uses it in the message.
-// If municipio is provided, uses it in the message.
+// If municipality is provided, uses it in the message.
 // Otherwise, uses a generic message.
-func NewPostalCodeNotFoundError(postalCode, municipio string) *PostalCodeNotFoundError {
+func NewPostalCodeNotFoundError(postalCode, municipality string) *PostalCodeNotFoundError {
 	var message string
 	if postalCode != "" {
 		message = fmt.Sprintf("Postal code not found: %s", postalCode)
-	} else if municipio != "" {
-		message = fmt.Sprintf("Municipality not found: %s", municipio)
+	} else if municipality != "" {
+		message = fmt.Sprintf("Municipality not found: %s", municipality)
 	} else {
 		message = "Postal code or municipality not found"
 	}
@@ -45,7 +45,7 @@ func NewPostalCodeNotFoundError(postalCode, municipio string) *PostalCodeNotFoun
 			Timestamp: time.Now(),
 		},
 		PostalCode: postalCode,
-		Municipio:  municipio,
+		Municipality:  municipality,
 	}
 }
 

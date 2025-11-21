@@ -19,7 +19,7 @@ var operationsLogger = logger.NewLogger("Operations")
 //
 // Parameters:
 //   - service: PostalCodeService instance to perform the geocoding
-//   - event: LambdaEvent containing the request body with postalCode or municipio
+//   - event: LambdaEvent containing the request body with postalCode or municipality
 //
 // Returns:
 //   - LambdaResponse with status code 200 and geocoding result on success
@@ -34,8 +34,8 @@ func GeocodeByPostalOperation(service *PostalCodeService, event domain.LambdaEve
 
 	operationsLogger.Info("Geocoding successful", map[string]interface{}{
 		"postalCode":   result.PostalCode,
-		"municipality": result.Municipio,
-		"provincia":    result.Provincia,
+		"municipality": result.Municipality,
+		"province":    result.Province,
 		"source":       result.Source,
 	})
 
@@ -68,8 +68,8 @@ func ReverseGeocodeOperation(service *PostalCodeService, event domain.LambdaEven
 
 	operationsLogger.Info("Reverse geocoding successful", map[string]interface{}{
 		"postalCode": result.PostalCode,
-		"municipio":  result.City,
-		"provincia":  result.Provincia,
+		"municipality":  result.City,
+		"province":  result.Province,
 		"distance":   result.Distance,
 	})
 
@@ -106,23 +106,23 @@ func ValidatePostalOperation(service *PostalCodeService, event domain.LambdaEven
 	}, nil
 }
 
-// ValidateMunicipioOperation handles the validate-municipio operation.
+// ValidateMunicipalityOperation handles the validate-municipality operation.
 //
 // Processes requests to validate if a Spanish municipality exists in the database.
 //
 // Parameters:
 //   - service: PostalCodeService instance to perform the validation
-//   - event: LambdaEvent containing the request body with municipio
+//   - event: LambdaEvent containing the request body with municipality
 //
 // Returns:
 //   - LambdaResponse with status code 200 and validation result on success
 //   - LambdaResponse with status code 400/500 and error message on failure
-func ValidateMunicipioOperation(service *PostalCodeService, event domain.LambdaEvent) (domain.LambdaResponse, error) {
+func ValidateMunicipalityOperation(service *PostalCodeService, event domain.LambdaEvent) (domain.LambdaResponse, error) {
 	operationsLogger.Info("Processing request", nil)
 
 	result, err := service.ValidateMunicipality(event)
 	if err != nil {
-		return handleValidationError(err, "Municipio validation failed")
+		return handleValidationError(err, "Municipality validation failed")
 	}
 
 	body, _ := json.Marshal(result)
@@ -164,7 +164,7 @@ func AutocompletePostalOperation(service *PostalCodeService, event domain.Lambda
 	}, nil
 }
 
-// AutocompleteMunicipioOperation handles the autocomplete-municipio operation.
+// AutocompleteMunicipalityOperation handles the autocomplete-municipality operation.
 //
 // Processes requests to autocomplete Spanish municipalities by query (fuzzy search).
 // Returns matching municipalities sorted with starts-with matches first.
@@ -176,12 +176,12 @@ func AutocompletePostalOperation(service *PostalCodeService, event domain.Lambda
 // Returns:
 //   - LambdaResponse with status code 200 and autocomplete results on success
 //   - LambdaResponse with status code 400/500 and error message on failure
-func AutocompleteMunicipioOperation(service *PostalCodeService, event domain.LambdaEvent) (domain.LambdaResponse, error) {
+func AutocompleteMunicipalityOperation(service *PostalCodeService, event domain.LambdaEvent) (domain.LambdaResponse, error) {
 	operationsLogger.Info("Processing request", nil)
 
 	results, err := service.AutocompleteMunicipality(event)
 	if err != nil {
-		return handleValidationError(err, "Autocomplete municipio failed")
+		return handleValidationError(err, "Autocomplete municipality failed")
 	}
 
 	response := map[string]interface{}{
@@ -204,7 +204,7 @@ func handleGeocodeError(err error, defaultMessage string) (domain.LambdaResponse
 	case *domain.PostalCodeNotFoundError:
 		body, _ := json.Marshal(map[string]interface{}{
 			"success": false,
-			"error":   "Postal code or municipio not found",
+			"error":   "Postal code or municipality not found",
 			"hint":     "Please provide a valid Spanish postal code (e.g., \"28001\") or municipality name (e.g., \"Madrid\")",
 		})
 		return domain.LambdaResponse{

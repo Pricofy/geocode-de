@@ -3,10 +3,10 @@ package domain
 // PostalData represents a Spanish postal code entry in the database.
 // Contains geographic coordinates, municipality, and province information.
 type PostalData struct {
-	Lat       float64 `json:"lat"`
-	Lon       float64 `json:"lon"`
-	Municipio string  `json:"municipio"`
-	Provincia string  `json:"provincia"`
+	Lat          float64 `json:"lat"`
+	Lon          float64 `json:"lon"`
+	Municipality string  `json:"municipality"`
+	Province     string  `json:"province"`
 }
 
 // Coordinates represents geographic coordinates (latitude and longitude).
@@ -18,12 +18,12 @@ type Coordinates struct {
 // GeocodingResult represents the result of a geocoding operation
 // (postal code or municipality → coordinates).
 type GeocodingResult struct {
-	Success    bool        `json:"success"`
-	Coords     Coordinates `json:"coords"`
-	Municipio  string      `json:"municipio"`
-	Provincia  string      `json:"provincia"`
-	PostalCode string      `json:"postalCode"`
-	Source     string      `json:"source"` // "postal_code", "municipio", or "reverse_geocode"
+	Success      bool        `json:"success"`
+	Coords       Coordinates `json:"coords"`
+	Municipality string      `json:"municipality"`
+	Province     string      `json:"province"`
+	PostalCode   string      `json:"postalCode"`
+	Source       string      `json:"source"` // "postal_code", "municipality", or "reverse_geocode"
 }
 
 // ReverseGeocodingResult represents the result of a reverse geocoding operation
@@ -32,7 +32,7 @@ type ReverseGeocodingResult struct {
 	Success    bool        `json:"success"`
 	City       string      `json:"city"` // Municipality name
 	PostalCode string      `json:"postalCode"`
-	Provincia  string      `json:"provincia"`
+	Province   string      `json:"province"`
 	Country    string      `json:"country"` // Always "España" for this service
 	Coords     Coordinates `json:"coords"`
 	Distance   float64     `json:"distance"` // Distance in kilometers
@@ -40,9 +40,9 @@ type ReverseGeocodingResult struct {
 
 // AutocompleteResult represents a single result in an autocomplete operation.
 type AutocompleteResult struct {
-	PostalCode string `json:"postalCode"`
-	Municipio  string `json:"municipio"`
-	Provincia  string `json:"provincia"`
+	PostalCode   string `json:"postalCode"`
+	Municipality string `json:"municipality"`
+	Province     string `json:"province"`
 }
 
 // ValidationResult represents the result of a validation operation.
@@ -67,13 +67,13 @@ type LambdaResponse struct {
 // RequestBody represents the parsed request body from LambdaEvent.
 // Used for routing operations based on the "operation" field.
 type RequestBody struct {
-	Operation  string   `json:"operation"`
-	PostalCode *string  `json:"postalCode,omitempty"`
-	Municipio  *string  `json:"municipio,omitempty"`
-	Lat        *float64 `json:"lat,omitempty"`
-	Lon        *float64 `json:"lon,omitempty"`
-	Prefix     *string  `json:"prefix,omitempty"`
-	Query      *string  `json:"query,omitempty"`
-	Limit      *int     `json:"limit,omitempty"`
+	Operation    string   `json:"operation"`
+	PostalCode   *string  `json:"postalCode,omitempty"`
+	Municipality *string  `json:"municipality,omitempty"`
+	Lat          *float64 `json:"lat,omitempty"`
+	Lon          *float64 `json:"lon,omitempty"`
+	Prefix       *string  `json:"prefix,omitempty"`
+	Query        *string  `json:"query,omitempty"`
+	Limit        *int     `json:"limit,omitempty"`
 }
 

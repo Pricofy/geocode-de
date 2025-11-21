@@ -133,9 +133,9 @@ This service was created by extracting Spanish-specific geocoding logic from `pr
 1. **geocode-by-postal** - Convert postal code or municipality to coordinates
 2. **reverse-geocode** - Find nearest postal code from GPS coordinates (Haversine distance)
 3. **validate-postal** - Validate if postal code exists in database
-4. **validate-municipio** - Validate if municipality name exists
+4. **validate-municipality** - Validate if municipality name exists
 5. **autocomplete-postal** - Autocomplete postal codes by prefix (binary search)
-6. **autocomplete-municipio** - Autocomplete municipality names by query
+6. **autocomplete-municipality** - Autocomplete municipality names by query
 
 #### Data & Performance
 - **Static postal code database:** 11,150 Spanish postal codes from GeoNames

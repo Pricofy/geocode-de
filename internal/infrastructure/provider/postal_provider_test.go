@@ -107,7 +107,7 @@ func TestPostalCodeProvider_GeocodeByMunicipality(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := p.GeocodeByMunicipio(tt.municipality)
+			result, err := p.GeocodeByMunicipality(tt.municipality)
 
 			if tt.wantErr {
 				if err == nil {
@@ -120,7 +120,7 @@ func TestPostalCodeProvider_GeocodeByMunicipality(t *testing.T) {
 				if result.Success != tt.wantSuccess {
 					t.Errorf("Expected success=%v, got %v", tt.wantSuccess, result.Success)
 				}
-				if result.Municipio == "" {
+				if result.Municipality == "" {
 					t.Errorf("Expected non-empty municipality")
 				}
 			}
@@ -357,9 +357,9 @@ func TestPostalCodeProvider_AutocompleteMunicipality(t *testing.T) {
 			// Verify all results contain query (case insensitive)
 			queryLower := tt.query
 			for _, result := range results {
-				municipalityLower := result.Municipio
+				municipalityLower := result.Municipality
 				if len(municipalityLower) < len(queryLower) {
-					t.Errorf("Result municipality %s is shorter than query %s", result.Municipio, tt.query)
+					t.Errorf("Result municipality %s is shorter than query %s", result.Municipality, tt.query)
 				}
 			}
 		})

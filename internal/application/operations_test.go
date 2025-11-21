@@ -7,7 +7,7 @@ import (
 	"github.com/pricofy/geocode-es/internal/domain"
 )
 
-func TestValidateMunicipioOperation(t *testing.T) {
+func TestValidateMunicipalityOperation(t *testing.T) {
 	service := NewPostalCodeService()
 
 	tests := []struct {
@@ -19,7 +19,7 @@ func TestValidateMunicipioOperation(t *testing.T) {
 		{
 			name: "valid municipality",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"validate-municipio","municipio":"Madrid"}`,
+				Body: `{"operation":"validate-municipality","municipality":"Madrid"}`,
 			},
 			wantStatusCode: 200,
 			wantValid:      true,
@@ -27,7 +27,7 @@ func TestValidateMunicipioOperation(t *testing.T) {
 		{
 			name: "invalid municipality",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"validate-municipio","municipio":"NonExistentCity"}`,
+				Body: `{"operation":"validate-municipality","municipality":"NonExistentCity"}`,
 			},
 			wantStatusCode: 200,
 			wantValid:      false,
@@ -35,7 +35,7 @@ func TestValidateMunicipioOperation(t *testing.T) {
 		{
 			name: "missing municipality",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"validate-municipio"}`,
+				Body: `{"operation":"validate-municipality"}`,
 			},
 			wantStatusCode: 400,
 			wantValid:      false,
@@ -44,7 +44,7 @@ func TestValidateMunicipioOperation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			response, err := ValidateMunicipioOperation(service, tt.event)
+			response, err := ValidateMunicipalityOperation(service, tt.event)
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}
@@ -66,7 +66,7 @@ func TestValidateMunicipioOperation(t *testing.T) {
 	}
 }
 
-func TestAutocompleteMunicipioOperation(t *testing.T) {
+func TestAutocompleteMunicipalityOperation(t *testing.T) {
 	service := NewPostalCodeService()
 
 	tests := []struct {
@@ -78,7 +78,7 @@ func TestAutocompleteMunicipioOperation(t *testing.T) {
 		{
 			name: "valid query",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"autocomplete-municipio","query":"mad"}`,
+				Body: `{"operation":"autocomplete-municipality","query":"mad"}`,
 			},
 			wantStatusCode: 200,
 			wantResults:    true,
@@ -86,7 +86,7 @@ func TestAutocompleteMunicipioOperation(t *testing.T) {
 		{
 			name: "valid query with limit",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"autocomplete-municipio","query":"bar","limit":5}`,
+				Body: `{"operation":"autocomplete-municipality","query":"bar","limit":5}`,
 			},
 			wantStatusCode: 200,
 			wantResults:    true,
@@ -94,7 +94,7 @@ func TestAutocompleteMunicipioOperation(t *testing.T) {
 		{
 			name: "empty query",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"autocomplete-municipio","query":""}`,
+				Body: `{"operation":"autocomplete-municipality","query":""}`,
 			},
 			wantStatusCode: 200,
 			wantResults:    true,
@@ -102,7 +102,7 @@ func TestAutocompleteMunicipioOperation(t *testing.T) {
 		{
 			name: "missing query",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"autocomplete-municipio"}`,
+				Body: `{"operation":"autocomplete-municipality"}`,
 			},
 			wantStatusCode: 400,
 			wantResults:    false,
@@ -111,7 +111,7 @@ func TestAutocompleteMunicipioOperation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			response, err := AutocompleteMunicipioOperation(service, tt.event)
+			response, err := AutocompleteMunicipalityOperation(service, tt.event)
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}

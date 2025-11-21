@@ -28,9 +28,9 @@ func TestHandler_GeocodeByPostal(t *testing.T) {
 			wantPostalCode: "28001",
 		},
 		{
-			name: "valid municipio",
+			name: "valid municipality",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"geocode-by-postal","municipio":"Madrid"}`,
+				Body: `{"operation":"geocode-by-postal","municipality":"Madrid"}`,
 			},
 			wantStatus:  200,
 			wantSuccess: true,
@@ -185,7 +185,7 @@ func TestHandler_ValidatePostal(t *testing.T) {
 	}
 }
 
-func TestHandler_ValidateMunicipio(t *testing.T) {
+func TestHandler_ValidateMunicipality(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
@@ -195,17 +195,17 @@ func TestHandler_ValidateMunicipio(t *testing.T) {
 		wantValid  bool
 	}{
 		{
-			name: "valid municipio",
+			name: "valid municipality",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"validate-municipio","municipio":"Madrid"}`,
+				Body: `{"operation":"validate-municipality","municipality":"Madrid"}`,
 			},
 			wantStatus: 200,
 			wantValid:  true,
 		},
 		{
-			name: "invalid municipio",
+			name: "invalid municipality",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"validate-municipio","municipio":"NonExistentCity"}`,
+				Body: `{"operation":"validate-municipality","municipality":"NonExistentCity"}`,
 			},
 			wantStatus: 200,
 			wantValid:  false,
@@ -291,7 +291,7 @@ func TestHandler_AutocompletePostal(t *testing.T) {
 	}
 }
 
-func TestHandler_AutocompleteMunicipio(t *testing.T) {
+func TestHandler_AutocompleteMunicipality(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
@@ -303,7 +303,7 @@ func TestHandler_AutocompleteMunicipio(t *testing.T) {
 		{
 			name: "valid query",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"autocomplete-municipio","query":"mad","limit":5}`,
+				Body: `{"operation":"autocomplete-municipality","query":"mad","limit":5}`,
 			},
 			wantStatus: 200,
 			wantCount:  5,
@@ -311,7 +311,7 @@ func TestHandler_AutocompleteMunicipio(t *testing.T) {
 		{
 			name: "missing query",
 			event: domain.LambdaEvent{
-				Body: `{"operation":"autocomplete-municipio","limit":5}`,
+				Body: `{"operation":"autocomplete-municipality","limit":5}`,
 			},
 			wantStatus: 400,
 			wantCount:  0,

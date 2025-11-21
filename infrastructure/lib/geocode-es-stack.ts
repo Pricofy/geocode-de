@@ -15,9 +15,9 @@ export interface GeocodeEsStackProps extends cdk.StackProps {
  * - geocode-by-postal
  * - reverse-geocode
  * - validate-postal
- * - validate-municipio
+ * - validate-municipality
  * - autocomplete-postal
- * - autocomplete-municipio
+ * - autocomplete-municipality
  * 
  * All operations are routed internally by the handler based on the 'operation' parameter.
  * 

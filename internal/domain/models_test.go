@@ -20,20 +20,20 @@ func TestPostalData_JSONSerialization(t *testing.T) {
 			data: PostalData{
 				Lat:       40.4168,
 				Lon:       -3.7038,
-				Municipio: "Madrid",
-				Provincia: "Madrid",
+				Municipality: "Madrid",
+				Province: "Madrid",
 			},
-			expected: `{"lat":40.4168,"lon":-3.7038,"municipio":"Madrid","provincia":"Madrid"}`,
+			expected: `{"lat":40.4168,"lon":-3.7038,"municipality":"Madrid","province":"Madrid"}`,
 		},
 		{
 			name: "Zero coordinates",
 			data: PostalData{
 				Lat:       0.0,
 				Lon:       0.0,
-				Municipio: "Test",
-				Provincia: "Test",
+				Municipality: "Test",
+				Province: "Test",
 			},
-			expected: `{"lat":0,"lon":0,"municipio":"Test","provincia":"Test"}`,
+			expected: `{"lat":0,"lon":0,"municipality":"Test","province":"Test"}`,
 		},
 	}
 
@@ -70,8 +70,8 @@ func TestGeocodingResult_JSONSerialization(t *testing.T) {
 	result := GeocodingResult{
 		Success:    true,
 		Coords:     Coordinates{Lat: 40.4168, Lon: -3.7038},
-		Municipio:  "Madrid",
-		Provincia:  "Madrid",
+		Municipality:  "Madrid",
+		Province:  "Madrid",
 		PostalCode: "28001",
 		Source:     "postal_code",
 	}
@@ -91,7 +91,7 @@ func TestReverseGeocodingResult_JSONSerialization(t *testing.T) {
 		Success:    true,
 		City:       "Madrid",
 		PostalCode: "28001",
-		Provincia:  "Madrid",
+		Province:  "Madrid",
 		Country:    "España",
 		Coords:     Coordinates{Lat: 40.4168, Lon: -3.7038},
 		Distance:   0.5,
@@ -110,8 +110,8 @@ func TestReverseGeocodingResult_JSONSerialization(t *testing.T) {
 func TestAutocompleteResult_JSONSerialization(t *testing.T) {
 	result := AutocompleteResult{
 		PostalCode: "28001",
-		Municipio:  "Madrid",
-		Provincia:  "Madrid",
+		Municipality:  "Madrid",
+		Province:  "Madrid",
 	}
 
 	jsonData, err := json.Marshal(result)
@@ -186,7 +186,7 @@ func TestLambdaResponse_JSONSerialization(t *testing.T) {
 // TestRequestBody_JSONSerialization tests JSON marshaling/unmarshaling of RequestBody.
 func TestRequestBody_JSONSerialization(t *testing.T) {
 	postalCode := "28001"
-	municipio := "Madrid"
+	municipality := "Madrid"
 	lat := 40.4168
 	lon := -3.7038
 	prefix := "280"
@@ -205,10 +205,10 @@ func TestRequestBody_JSONSerialization(t *testing.T) {
 			},
 		},
 		{
-			name: "Geocode by municipio",
+			name: "Geocode by municipality",
 			body: RequestBody{
 				Operation: "geocode-by-postal",
-				Municipio: &municipio,
+				Municipality: &municipality,
 			},
 		},
 		{
@@ -227,10 +227,10 @@ func TestRequestBody_JSONSerialization(t *testing.T) {
 			},
 		},
 		{
-			name: "Validate municipio",
+			name: "Validate municipality",
 			body: RequestBody{
-				Operation: "validate-municipio",
-				Municipio: &municipio,
+				Operation: "validate-municipality",
+				Municipality: &municipality,
 			},
 		},
 		{
@@ -242,9 +242,9 @@ func TestRequestBody_JSONSerialization(t *testing.T) {
 			},
 		},
 		{
-			name: "Autocomplete municipio",
+			name: "Autocomplete municipality",
 			body: RequestBody{
-				Operation: "autocomplete-municipio",
+				Operation: "autocomplete-municipality",
 				Query:     &query,
 				Limit:     &limit,
 			},
@@ -268,9 +268,9 @@ func TestRequestBody_JSONSerialization(t *testing.T) {
 				require.NotNil(t, unmarshaled.PostalCode)
 				assert.Equal(t, *tt.body.PostalCode, *unmarshaled.PostalCode)
 			}
-			if tt.body.Municipio != nil {
-				require.NotNil(t, unmarshaled.Municipio)
-				assert.Equal(t, *tt.body.Municipio, *unmarshaled.Municipio)
+			if tt.body.Municipality != nil {
+				require.NotNil(t, unmarshaled.Municipality)
+				assert.Equal(t, *tt.body.Municipality, *unmarshaled.Municipality)
 			}
 			if tt.body.Lat != nil {
 				require.NotNil(t, unmarshaled.Lat)

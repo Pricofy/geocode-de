@@ -68,7 +68,7 @@ const response = JSON.parse(result.Payload as string);
 ┌─────────────────────────────────────────────────────────────────┐
 │                   Operations Layer                               │
 │  geocode-by-postal, reverse-geocode, validate-postal,           │
-│  validate-municipio, autocomplete-postal, autocomplete-municipio │
+│  validate-municipality, autocomplete-postal, autocomplete-municipality │
 └────────────────────────────┬────────────────────────────────────┘
                              │
                              ▼
@@ -97,9 +97,9 @@ const response = JSON.parse(result.Payload as string);
 POST { "operation": "geocode-by-postal", "postalCode": "28001" }
 POST { "operation": "reverse-geocode", "lat": 40.4168, "lon": -3.7038 }
 POST { "operation": "validate-postal", "postalCode": "28001" }
-POST { "operation": "validate-municipio", "municipio": "Madrid" }
+POST { "operation": "validate-municipality", "municipality": "Madrid" }
 POST { "operation": "autocomplete-postal", "prefix": "280", "limit": 5 }
-POST { "operation": "autocomplete-municipio", "query": "mad", "limit": 5 }
+POST { "operation": "autocomplete-municipality", "query": "mad", "limit": 5 }
 ```
 
 ---
@@ -109,7 +109,7 @@ POST { "operation": "autocomplete-municipio", "query": "mad", "limit": 5 }
 ### 1. Static Spanish Postal Codes Database
 
 - **Source:** GeoNames (11,150 unique postal codes)
-- **Format:** JSON with lat/lon, municipio, provincia
+- **Format:** JSON with lat/lon, municipality, province
 - **Performance:** Loaded once into memory, O(1) lookups via indices
 - **Benefits:** ✅ Unlimited requests ✅ Sub-millisecond latency ✅ Zero external APIs
 
@@ -118,8 +118,8 @@ POST { "operation": "autocomplete-municipio", "query": "mad", "limit": 5 }
 ```typescript
 {
   codes: Map<postalCode, data>,           // O(1) postal code lookup
-  municipioIndex: Map<municipio, entries>, // O(1) municipality lookup
-  municipioSet: Set<municipio>,            // O(1) validation
+  municipalityIndex: Map<municipality, entries>, // O(1) municipality lookup
+  municipalitySet: Set<municipality>,            // O(1) validation
   sortedPostalCodes: string[]              // Binary search for autocomplete
 }
 ```
@@ -131,9 +131,9 @@ POST { "operation": "autocomplete-municipio", "query": "mad", "limit": 5 }
 | geocode-by-postal | Postal → Coords | O(1) | <1ms |
 | reverse-geocode | Coords → Postal | O(n) Haversine | ~10-20ms |
 | validate-postal | Check postal exists | O(1) | <1ms |
-| validate-municipio | Check municipality exists | O(1) | <1ms |
+| validate-municipality | Check municipality exists | O(1) | <1ms |
 | autocomplete-postal | Prefix search | O(log n) | <5ms |
-| autocomplete-municipio | Fuzzy search | O(n) | <10ms |
+| autocomplete-municipality | Fuzzy search | O(n) | <10ms |
 
 ---
 
@@ -340,9 +340,9 @@ See [api/openapi.yaml](./api/openapi.yaml) for full OpenAPI 3.0 specification.
 - `POST /geocode` with `operation: "geocode-by-postal"`
 - `POST /geocode` with `operation: "reverse-geocode"`
 - `POST /geocode` with `operation: "validate-postal"`
-- `POST /geocode` with `operation: "validate-municipio"`
+- `POST /geocode` with `operation: "validate-municipality"`
 - `POST /geocode` with `operation: "autocomplete-postal"`
-- `POST /geocode` with `operation: "autocomplete-municipio"`
+- `POST /geocode` with `operation: "autocomplete-municipality"`
 
 ---
 

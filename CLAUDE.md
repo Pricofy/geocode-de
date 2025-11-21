@@ -79,7 +79,7 @@ Clean separation of concerns across three layers:
 │                   Operations Layer                               │
 │  internal/application/operations.go                             │
 │  geocode-by-postal, reverse-geocode, validate-postal,           │
-│  validate-municipio, autocomplete-postal, autocomplete-municipio│
+│  validate-municipality, autocomplete-postal, autocomplete-municipality│
 └────────────────────────────┬────────────────────────────────────┘
                              │
                              ▼
@@ -117,12 +117,12 @@ Clean separation of concerns across three layers:
 
 | Operation | Purpose | Input | Output | Latency |
 |-----------|---------|-------|--------|---------|
-| **geocode-by-postal** | Postal Code → Coords | `postalCode` or `municipio` | Coordinates + metadata | <1ms |
+| **geocode-by-postal** | Postal Code → Coords | `postalCode` or `municipality` | Coordinates + metadata | <1ms |
 | **reverse-geocode** | Coords → Postal Code | `lat`, `lon` | Nearest postal code + distance | ~10-20ms |
 | **validate-postal** | Check if postal code is valid | `postalCode` | `valid: true/false` | <1ms |
-| **validate-municipio** | Check if municipality is valid | `municipio` | `valid: true/false` | <5ms |
+| **validate-municipality** | Check if municipality is valid | `municipality` | `valid: true/false` | <5ms |
 | **autocomplete-postal** | Autocomplete postal codes | `query`, `limit` | List of matching postal codes | <5ms |
-| **autocomplete-municipio** | Autocomplete municipalities | `query`, `limit` | List of matching municipalities | <5ms |
+| **autocomplete-municipality** | Autocomplete municipalities | `query`, `limit` | List of matching municipalities | <5ms |
 
 **All operations are PRIVATE** (no public URLs, no API Gateway).  
 Only invokable by **pricofy-location-service** via IAM role.
@@ -137,8 +137,8 @@ Only invokable by **pricofy-location-service** via IAM role.
   "28001": {
     "lat": 40.4168,
     "lon": -3.7038,
-    "municipio": "Madrid",
-    "provincia": "Madrid"
+    "municipality": "Madrid",
+    "province": "Madrid"
   }
 }
 ```
@@ -230,9 +230,9 @@ pricofy-geocode-es (COUNTRY-SPECIFIC)
     ├─ geocode-by-postal
     ├─ reverse-geocode
     ├─ validate-postal
-    ├─ validate-municipio
+    ├─ validate-municipality
     ├─ autocomplete-postal
-    └─ autocomplete-municipio
+    └─ autocomplete-municipality
 ```
 
 **Why this architecture:**
@@ -279,7 +279,7 @@ pricofy-geocode-es (COUNTRY-SPECIFIC)
 {
   "operation": "geocode-by-postal",
   "country": "ES",
-  "municipio": "Madrid"
+  "municipality": "Madrid"
 }
 ```
 
@@ -287,7 +287,7 @@ pricofy-geocode-es (COUNTRY-SPECIFIC)
 ```json
 {
   "statusCode": 200,
-  "body": "{\"success\":true,\"coords\":{\"lat\":40.4168,\"lon\":-3.7038},\"municipio\":\"Madrid\",\"provincia\":\"Madrid\",\"postalCode\":\"28001\",\"source\":\"postal_code\"}"
+  "body": "{\"success\":true,\"coords\":{\"lat\":40.4168,\"lon\":-3.7038},\"municipality\":\"Madrid\",\"province\":\"Madrid\",\"postalCode\":\"28001\",\"source\":\"postal_code\"}"
 }
 ```
 
@@ -305,7 +305,7 @@ pricofy-geocode-es (COUNTRY-SPECIFIC)
 
 **Source Field:**
 - `postal_code` - Looked up by postal code (more precise)
-- `municipio` - Looked up by municipality name (less precise)
+- `municipality` - Looked up by municipality name (less precise)
 
 ### 2. reverse-geocode
 
@@ -325,7 +325,7 @@ pricofy-geocode-es (COUNTRY-SPECIFIC)
 ```json
 {
   "statusCode": 200,
-  "body": "{\"success\":true,\"city\":\"Madrid\",\"postalCode\":\"28001\",\"provincia\":\"Madrid\",\"country\":\"España\",\"coords\":{\"lat\":40.4168,\"lon\":-3.7038},\"distance\":0.142}"
+  "body": "{\"success\":true,\"city\":\"Madrid\",\"postalCode\":\"28001\",\"province\":\"Madrid\",\"country\":\"España\",\"coords\":{\"lat\":40.4168,\"lon\":-3.7038},\"distance\":0.142}"
 }
 ```
 
@@ -367,16 +367,16 @@ pricofy-geocode-es (COUNTRY-SPECIFIC)
 - <1ms latency
 - Returns `valid: true` if postal code exists, `valid: false` otherwise
 
-### 4. validate-municipio
+### 4. validate-municipality
 
 **Purpose:** Validate if a Spanish municipality name exists
 
 **Input:**
 ```json
 {
-  "operation": "validate-municipio",
+  "operation": "validate-municipality",
   "country": "ES",
-  "municipio": "Madrid"
+  "municipality": "Madrid"
 }
 ```
 
@@ -384,7 +384,7 @@ pricofy-geocode-es (COUNTRY-SPECIFIC)
 ```json
 {
   "statusCode": 200,
-  "body": "{\"success\":true,\"valid\":true,\"municipio\":\"Madrid\"}"
+  "body": "{\"success\":true,\"valid\":true,\"municipality\":\"Madrid\"}"
 }
 ```
 
@@ -421,14 +421,14 @@ pricofy-geocode-es (COUNTRY-SPECIFIC)
 - Returns up to `limit` results (default: 10, max: 50)
 - Case-insensitive prefix matching
 
-### 6. autocomplete-municipio
+### 6. autocomplete-municipality
 
 **Purpose:** Autocomplete Spanish municipality names as user types
 
 **Input:**
 ```json
 {
-  "operation": "autocomplete-municipio",
+  "operation": "autocomplete-municipality",
   "country": "ES",
   "query": "mad",
   "limit": 10
@@ -590,7 +590,7 @@ cat response.json
 # Test geocode-by-postal (municipality)
 aws lambda invoke \
   --function-name pricofy-geocode-es-dev \
-  --payload '{"body":"{\"operation\":\"geocode-by-postal\",\"country\":\"ES\",\"municipio\":\"Madrid\"}"}' \
+  --payload '{"body":"{\"operation\":\"geocode-by-postal\",\"country\":\"ES\",\"municipality\":\"Madrid\"}"}' \
   response.json
 
 cat response.json
@@ -611,10 +611,10 @@ aws lambda invoke \
 
 cat response.json
 
-# Test validate-municipio
+# Test validate-municipality
 aws lambda invoke \
   --function-name pricofy-geocode-es-dev \
-  --payload '{"body":"{\"operation\":\"validate-municipio\",\"country\":\"ES\",\"municipio\":\"Madrid\"}"}' \
+  --payload '{"body":"{\"operation\":\"validate-municipality\",\"country\":\"ES\",\"municipality\":\"Madrid\"}"}' \
   response.json
 
 cat response.json
@@ -627,10 +627,10 @@ aws lambda invoke \
 
 cat response.json
 
-# Test autocomplete-municipio
+# Test autocomplete-municipality
 aws lambda invoke \
   --function-name pricofy-geocode-es-dev \
-  --payload '{"body":"{\"operation\":\"autocomplete-municipio\",\"country\":\"ES\",\"query\":\"mad\",\"limit\":10}"}' \
+  --payload '{"body":"{\"operation\":\"autocomplete-municipality\",\"country\":\"ES\",\"query\":\"mad\",\"limit\":10}"}' \
   response.json
 
 cat response.json

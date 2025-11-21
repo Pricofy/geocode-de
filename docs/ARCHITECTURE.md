@@ -85,9 +85,9 @@ Hexagonal Architecture (Ports & Adapters) with clean separation of concerns acro
 - `GeocodeByPostal()`: Postal code → coordinates
 - `ReverseGeocode()`: Coordinates → postal code
 - `ValidatePostal()`: Check postal code exists
-- `ValidateMunicipio()`: Check municipality exists
+- `ValidateMunicipality()`: Check municipality exists
 - `AutocompletePostal()`: Prefix-based postal code search
-- `AutocompleteMunicipio()`: Fuzzy municipality search
+- `AutocompleteMunicipality()`: Fuzzy municipality search
 
 ## Infrastructure Layer (`internal/infrastructure/`)
 
@@ -146,7 +146,7 @@ Lambda Invoke → main.go Handler → PostalCodeService.ReverseGeocode()
 
 ### 3. Validation Flow
 ```
-Lambda Invoke → main.go Handler → PostalCodeService.ValidatePostal/Municipio()
+Lambda Invoke → main.go Handler → PostalCodeService.ValidatePostal/Municipality()
                                        ↓
                           Parse input
                                        ↓
@@ -227,10 +227,10 @@ type PostalCodeProvider struct {
     codes map[string]PostalData
     
     // O(1) lookup by municipality
-    municipioIndex map[string][]postalEntry
+    municipalityIndex map[string][]postalEntry
     
     // O(1) validation
-    municipioSet map[string]bool
+    municipalitySet map[string]bool
     
     // Binary search for autocomplete
     sortedPostalCodes []string
@@ -245,12 +245,12 @@ type PostalCodeProvider struct {
 | Operation | Data Structure | Complexity | Latency |
 |-----------|---------------|------------|---------|
 | Geocode by postal | Map lookup | O(1) | <1ms |
-| Geocode by municipio | Map lookup | O(1) | <1ms |
+| Geocode by municipality | Map lookup | O(1) | <1ms |
 | Reverse geocode | Linear scan + Haversine | O(n) | ~10-20ms |
 | Validate postal | Map lookup | O(1) | <1ms |
-| Validate municipio | Set lookup | O(1) | <1ms |
+| Validate municipality | Set lookup | O(1) | <1ms |
 | Autocomplete postal | Binary search | O(log n) | <5ms |
-| Autocomplete municipio | Linear scan | O(n) | <10ms |
+| Autocomplete municipality | Linear scan | O(n) | <10ms |
 
 ## Error Handling
 
@@ -271,7 +271,7 @@ type InvalidCoordinatesError struct {
 type PostalCodeNotFoundError struct {
     LocationError
     PostalCode string
-    Municipio  string
+    Municipality  string
 }
 
 type ValidationError struct {
@@ -350,7 +350,7 @@ type ValidationError struct {
 ```go
 logger.Info("PostalCodeService", "Geocoding completed", map[string]interface{}{
     "postalCode": "28001",
-    "municipio":  "Madrid",
+    "municipality":  "Madrid",
     "latency":    5,
     "source":     "postal_code",
 })

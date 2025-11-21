@@ -241,7 +241,7 @@ make test-geocode ENV=dev
 // Tries postal code first (faster, O(1)), then municipality if not found (O(n)).
 //
 // Parameters:
-//   - event: LambdaEvent containing postalCode or municipio in the body
+//   - event: LambdaEvent containing postalCode or municipality in the body
 //
 // Returns:
 //   - GeocodingResult with coordinates and metadata
@@ -271,7 +271,7 @@ Use structured logging:
 ```go
 logger.Info("PostalCodeService", "Geocoding completed", map[string]interface{}{
     "postalCode": postalCode,
-    "municipio":  result.Municipio,
+    "municipality":  result.Municipality,
     "latency":    time.Since(start).Milliseconds(),
 })
 ```

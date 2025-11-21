@@ -26,9 +26,9 @@ Contract specification for the Spanish postal code geocoding service.
 - **geocode-by-postal**: Convert postal codes to coordinates
 - **reverse-geocode**: Find nearest postal code from GPS coordinates
 - **validate-postal**: Check if postal code exists
-- **validate-municipio**: Check if municipality exists
+- **validate-municipality**: Check if municipality exists
 - **autocomplete-postal**: Search postal codes by prefix
-- **autocomplete-municipio**: Search municipalities by query
+- **autocomplete-municipality**: Search municipalities by query
 
 **Architecture**: Single Lambda function with internal routing via `operation` parameter.
 
@@ -140,7 +140,7 @@ aws lambda invoke \
 # Validate municipality
 aws lambda invoke \
   --function-name pricofy-geocode-es-dev \
-  --payload '{"operation":"validate-municipio","municipio":"Madrid"}' \
+  --payload '{"operation":"validate-municipality","municipality":"Madrid"}' \
   response.json && cat response.json | jq
 
 # Autocomplete postal code
@@ -152,7 +152,7 @@ aws lambda invoke \
 # Autocomplete municipality
 aws lambda invoke \
   --function-name pricofy-geocode-es-dev \
-  --payload '{"operation":"autocomplete-municipio","query":"mad","limit":5}' \
+  --payload '{"operation":"autocomplete-municipality","query":"mad","limit":5}' \
   response.json && cat response.json | jq
 ```
 
@@ -172,7 +172,7 @@ aws lambda invoke \
 ```json
 {
   "statusCode": 200,
-  "body": "{\"success\":true,\"coords\":{\"lat\":40.4168,\"lon\":-3.7038},\"municipio\":\"Madrid\",\"provincia\":\"Madrid\",\"postalCode\":\"28001\",\"source\":\"postal_code\"}"
+  "body": "{\"success\":true,\"coords\":{\"lat\":40.4168,\"lon\":-3.7038},\"municipality\":\"Madrid\",\"province\":\"Madrid\",\"postalCode\":\"28001\",\"source\":\"postal_code\"}"
 }
 ```
 
@@ -191,7 +191,7 @@ aws lambda invoke \
 ```json
 {
   "statusCode": 200,
-  "body": "{\"success\":true,\"city\":\"Madrid\",\"postalCode\":\"28001\",\"provincia\":\"Madrid\",\"country\":\"España\",\"coords\":{\"lat\":40.4168,\"lon\":-3.7038},\"distance\":0.142}"
+  "body": "{\"success\":true,\"city\":\"Madrid\",\"postalCode\":\"28001\",\"province\":\"Madrid\",\"country\":\"España\",\"coords\":{\"lat\":40.4168,\"lon\":-3.7038},\"distance\":0.142}"
 }
 ```
 
@@ -228,7 +228,7 @@ aws lambda invoke \
 ```json
 {
   "statusCode": 200,
-  "body": "{\"results\":[{\"postalCode\":\"28001\",\"municipio\":\"Madrid\",\"provincia\":\"Madrid\"},{\"postalCode\":\"28002\",\"municipio\":\"Madrid\",\"provincia\":\"Madrid\"},{\"postalCode\":\"28003\",\"municipio\":\"Madrid\",\"provincia\":\"Madrid\"}],\"count\":3}"
+  "body": "{\"results\":[{\"postalCode\":\"28001\",\"municipality\":\"Madrid\",\"province\":\"Madrid\"},{\"postalCode\":\"28002\",\"municipality\":\"Madrid\",\"province\":\"Madrid\"},{\"postalCode\":\"28003\",\"municipality\":\"Madrid\",\"province\":\"Madrid\"}],\"count\":3}"
 }
 ```
 

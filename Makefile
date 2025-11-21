@@ -57,13 +57,13 @@ all: build test ## Build and test (default)
 # Build the binary for Lambda (Linux/ARM64 - Graviton2)
 build: ## Build the Go binary for AWS Lambda (Linux/ARM64 - Graviton2)
 	@echo "🔨 Building for Lambda (Linux/ARM64 - Graviton2)..."
-	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 $(GO) build -ldflags="-s -w" -o $(BINARY) ./cmd
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 $(GO) build -ldflags="-s -w" -o $(BINARY) ./cmd/lambda
 	@echo "✅ Build complete"
 
 # Build for local development (native architecture)
 build-local: ## Build the Go binary for local development
 	@echo "🔨 Building for local development..."
-	$(GO) build -o $(BINARY) ./cmd
+	$(GO) build -o $(BINARY) ./cmd/lambda
 	@echo "✅ Build complete"
 
 # Run unit tests with coverage
@@ -94,9 +94,6 @@ test-fast: ## Run tests without verbose output (faster)
 	@$(GOTEST) -coverprofile=coverage.out -covermode=atomic -coverpkg=./cmd/...,./internal/... ./... 2>&1 | grep -E "(PASS|FAIL|ok|coverage)" | grep -v "no test files" | grep -v "no statements"
 	@echo "📊 Coverage: $$(go tool cover -func=coverage.out | grep total: | awk '{print $$3}')"
 
-# ========================================
-# E2E Testing Targets
-# ========================================
 # Run E2E integration tests (requires deployed Lambda)
 test-e2e: ## Run E2E integration tests against deployed Lambda
 	@echo "🚀 Running E2E integration tests..."
@@ -112,23 +109,6 @@ test-e2e-setup: ## Install E2E test dependencies
 test-e2e-quick: ## Run quick E2E health check
 	@echo "🧪 Running quick E2E health check..."
 	@cd test/e2e && npm run test:quick
-
-# Run E2E tests for specific operations
-test-e2e-geocode: ## Run E2E tests for geocode operations only
-	@echo "🧪 Testing geocode operations..."
-	@cd test/e2e && npm test -- --testNamePattern="Geocode"
-
-test-e2e-reverse: ## Run E2E tests for reverse geocode only
-	@echo "🧪 Testing reverse geocode..."
-	@cd test/e2e && npm test -- --testNamePattern="Reverse"
-
-test-e2e-validate: ## Run E2E tests for validation operations only
-	@echo "🧪 Testing validation operations..."
-	@cd test/e2e && npm test -- --testNamePattern="Validate"
-
-test-e2e-autocomplete: ## Run E2E tests for autocomplete operations only
-	@echo "🧪 Testing autocomplete operations..."
-	@cd test/e2e && npm test -- --testNamePattern="Autocomplete"
 
 # Run linter
 lint: ## Run golangci-lint
@@ -257,4 +237,4 @@ ci: clean install build test lint ## Run CI pipeline locally
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: all build build-local test test-fast test-e2e test-e2e-setup test-e2e-quick test-e2e-geocode test-e2e-reverse test-e2e-validate test-e2e-autocomplete coverage-html lint clean deps install verify deploy deploy-quick destroy-dev destroy-prod test-geocode logs-geocode ci help
+.PHONY: all build build-local test test-fast test-e2e test-e2e-setup test-e2e-quick coverage-html lint clean deps install verify deploy deploy-quick destroy-dev destroy-prod test-geocode logs-geocode ci help

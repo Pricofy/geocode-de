@@ -53,7 +53,7 @@ Convert Spanish postal code or municipality to coordinates.
 ```json
 {
   "operation": "geocode-by-postal",
-  "municipio": "Madrid"
+  "municipality": "Madrid"
 }
 ```
 
@@ -68,8 +68,8 @@ Convert Spanish postal code or municipality to coordinates.
       "lat": 40.4168,
       "lon": -3.7038
     },
-    "municipio": "Madrid",
-    "provincia": "Madrid",
+    "municipality": "Madrid",
+    "province": "Madrid",
     "postalCode": "28001",
     "source": "postal_code"
   }
@@ -90,7 +90,7 @@ Convert Spanish postal code or municipality to coordinates.
 
 ### Fields
 
-- `source`: `"postal_code"` (looked up by postal code) or `"municipio"` (looked up by municipality)
+- `source`: `"postal_code"` (looked up by postal code) or `"municipality"` (looked up by municipality)
 
 ---
 
@@ -117,7 +117,7 @@ Find nearest Spanish postal code from GPS coordinates.
     "success": true,
     "city": "Madrid",
     "postalCode": "28001",
-    "provincia": "Madrid",
+    "province": "Madrid",
     "country": "España",
     "coords": {
       "lat": 40.4168,
@@ -173,7 +173,7 @@ Check if Spanish postal code exists.
 
 ---
 
-## 4. Validate Municipio
+## 4. Validate Municipality
 
 Check if Spanish municipality exists.
 
@@ -181,8 +181,8 @@ Check if Spanish municipality exists.
 
 ```json
 {
-  "operation": "validate-municipio",
-  "municipio": "Madrid"
+  "operation": "validate-municipality",
+  "municipality": "Madrid"
 }
 ```
 
@@ -224,13 +224,13 @@ Autocomplete Spanish postal codes by prefix.
     "results": [
       {
         "postalCode": "28001",
-        "municipio": "Madrid",
-        "provincia": "Madrid"
+        "municipality": "Madrid",
+        "province": "Madrid"
       },
       {
         "postalCode": "28002",
-        "municipio": "Madrid",
-        "provincia": "Madrid"
+        "municipality": "Madrid",
+        "province": "Madrid"
       }
     ]
   }
@@ -243,7 +243,7 @@ Autocomplete Spanish postal codes by prefix.
 
 ---
 
-## 6. Autocomplete Municipio
+## 6. Autocomplete Municipality
 
 Autocomplete Spanish municipalities by query (fuzzy search).
 
@@ -251,7 +251,7 @@ Autocomplete Spanish municipalities by query (fuzzy search).
 
 ```json
 {
-  "operation": "autocomplete-municipio",
+  "operation": "autocomplete-municipality",
   "query": "mad",
   "limit": 10
 }
@@ -267,13 +267,13 @@ Autocomplete Spanish municipalities by query (fuzzy search).
     "results": [
       {
         "postalCode": "28001",
-        "municipio": "Madrid",
-        "provincia": "Madrid"
+        "municipality": "Madrid",
+        "province": "Madrid"
       },
       {
         "postalCode": "28730",
-        "municipio": "Madarcos",
-        "provincia": "Madrid"
+        "municipality": "Madarcos",
+        "province": "Madrid"
       }
     ]
   }
@@ -333,9 +333,9 @@ Autocomplete Spanish municipalities by query (fuzzy search).
 | geocode-by-postal | O(1) | <1ms |
 | reverse-geocode | O(n) | ~10-20ms |
 | validate-postal | O(1) | <1ms |
-| validate-municipio | O(1) | <1ms |
+| validate-municipality | O(1) | <1ms |
 | autocomplete-postal | O(log n) | <5ms |
-| autocomplete-municipio | O(n) | <10ms |
+| autocomplete-municipality | O(n) | <10ms |
 
 ---
 

@@ -18,9 +18,9 @@ var handlerLogger = logger.NewLogger("LambdaHandler")
 // - geocode-by-postal
 // - reverse-geocode
 // - validate-postal
-// - validate-municipio
+// - validate-municipality
 // - autocomplete-postal
-// - autocomplete-municipio
+// - autocomplete-municipality
 //
 // Handles both event formats:
 // 1. Direct Lambda invocation: { "operation": "...", "postalCode": "..." }
@@ -95,19 +95,19 @@ func Handler(ctx context.Context, event interface{}) (domain.LambdaResponse, err
 	case "validate-postal":
 		return application.ValidatePostalOperation(service, eventWithBody)
 
-	case "validate-municipio":
-		return application.ValidateMunicipioOperation(service, eventWithBody)
+	case "validate-municipality":
+		return application.ValidateMunicipalityOperation(service, eventWithBody)
 
 	case "autocomplete-postal":
 		return application.AutocompletePostalOperation(service, eventWithBody)
 
-	case "autocomplete-municipio":
-		return application.AutocompleteMunicipioOperation(service, eventWithBody)
+	case "autocomplete-municipality":
+		return application.AutocompleteMunicipalityOperation(service, eventWithBody)
 
 	default:
 		errorBody, _ := json.Marshal(map[string]interface{}{
 			"success": false,
-			"error":   "Operation '" + body.Operation + "' not supported. Supported operations: geocode-by-postal, reverse-geocode, validate-postal, validate-municipio, autocomplete-postal, autocomplete-municipio",
+			"error":   "Operation '" + body.Operation + "' not supported. Supported operations: geocode-by-postal, reverse-geocode, validate-postal, validate-municipality, autocomplete-postal, autocomplete-municipality",
 		})
 		return domain.LambdaResponse{
 			StatusCode: 400,

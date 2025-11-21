@@ -179,10 +179,10 @@ components:
               lon:
                 type: number
                 description: Longitude
-          municipio:
+          municipality:
             type: string
             description: Municipality name
-          provincia:
+          province:
             type: string
             description: Province name
           postalCode:
@@ -190,7 +190,7 @@ components:
             description: Postal code
           source:
             type: string
-            enum: [postal_code, municipio, reverse_geocode]
+            enum: [postal_code, municipality, reverse_geocode]
             description: Source of the result
     
     ReverseGeocodeRequest:
@@ -235,7 +235,7 @@ components:
           postalCode:
             type: string
             description: Postal code
-          provincia:
+          province:
             type: string
             description: Province name
           country:
@@ -359,10 +359,10 @@ components:
                 postalCode:
                   type: string
                   description: Postal code (5 digits)
-                municipio:
+                municipality:
                   type: string
                   description: Municipality name
-                provincia:
+                province:
                   type: string
                   description: Province name
           count:
@@ -410,10 +410,10 @@ components:
                 postalCode:
                   type: string
                   description: Postal code (5 digits)
-                municipio:
+                municipality:
                   type: string
                   description: Municipality name
-                provincia:
+                province:
                   type: string
                   description: Province name
           count:

@@ -17,14 +17,14 @@ Static database of **11,150 unique Spanish postal codes** from GeoNames.
   "28001": {
     "lat": 40.4168,
     "lon": -3.7038,
-    "municipio": "Madrid",
-    "provincia": "Madrid"
+    "municipality": "Madrid",
+    "province": "Madrid"
   },
   "08001": {
     "lat": 41.3851,
     "lon": 2.1734,
-    "municipio": "Barcelona",
-    "provincia": "Barcelona"
+    "municipality": "Barcelona",
+    "province": "Barcelona"
   }
 }
 ```
@@ -33,8 +33,8 @@ Static database of **11,150 unique Spanish postal codes** from GeoNames.
 
 - `lat`: Latitude (decimal degrees)
 - `lon`: Longitude (decimal degrees)
-- `municipio`: Municipality name
-- `provincia`: Province name
+- `municipality`: Municipality name
+- `province`: Province name
 
 ## Coverage
 
@@ -55,19 +55,19 @@ codes map[string]PostalData
 
 ### 2. Municipality Index
 ```go
-municipioIndex map[string][]postalEntry
+municipalityIndex map[string][]postalEntry
 ```
 - **Purpose**: O(1) lookup by municipality name
 - **Size**: ~8,000 unique municipalities
-- **Usage**: `geocode-by-postal` (when municipio provided)
+- **Usage**: `geocode-by-postal` (when municipality provided)
 
 ### 3. Municipality Set
 ```go
-municipioSet map[string]bool
+municipalitySet map[string]bool
 ```
 - **Purpose**: O(1) validation
 - **Size**: ~8,000 entries
-- **Usage**: `validate-municipio`
+- **Usage**: `validate-municipality`
 
 ### 4. Sorted Postal Codes
 ```go
@@ -94,7 +94,7 @@ allPostalCodes []postalEntry
 | Validate postal code | Postal Code Map | O(1) | <1ms |
 | Validate municipality | Municipality Set | O(1) | <1ms |
 | Autocomplete postal | Sorted Array | O(log n) | <5ms |
-| Autocomplete municipio | Municipality Index | O(n) | <10ms |
+| Autocomplete municipality | Municipality Index | O(n) | <10ms |
 | Reverse geocode | All Postal Codes | O(n) | ~10-20ms |
 
 ## Data Loading
@@ -108,15 +108,15 @@ func NewPostalCodeProvider() *PostalCodeProvider {
     
     // Build indices
     codes := buildPostalCodeMap(data)
-    municipioIndex := buildMunicipioIndex(data)
-    municipioSet := buildMunicipioSet(data)
+    municipalityIndex := buildMunicipalityIndex(data)
+    municipalitySet := buildMunicipalitySet(data)
     sortedPostalCodes := buildSortedArray(data)
     allPostalCodes := buildAllPostalCodesArray(data)
     
     return &PostalCodeProvider{
         codes:              codes,
-        municipioIndex:     municipioIndex,
-        municipioSet:       municipioSet,
+        municipalityIndex:     municipalityIndex,
+        municipalitySet:       municipalitySet,
         sortedPostalCodes:  sortedPostalCodes,
         allPostalCodes:     allPostalCodes,
     }

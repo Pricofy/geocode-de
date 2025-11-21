@@ -10,13 +10,7 @@
     "test:geocode": "NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='Geocode by Postal'",
     "test:reverse": "NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='Reverse Geocode'",
     "test:validate": "NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='Validate'",
-    "test:validate:postal": "NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='Validate Postal'",
-    "test:validate:municipio": "NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='Validate Municipio'",
-    "test:autocomplete": "NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='Autocomplete'",
-    "test:autocomplete:postal": "NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='Autocomplete Postal'",
-    "test:autocomplete:municipio": "NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='Autocomplete Municipio'",
-    "test:errors": "NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='Error Handling'",
-    "test:performance": "NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='Performance'"
+    "test:autocomplete": "NODE_OPTIONS='--experimental-vm-modules' jest --testNamePattern='Autocomplete'"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",

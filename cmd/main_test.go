@@ -92,11 +92,11 @@ func TestHandler_ValidatePostal(t *testing.T) {
 	}
 }
 
-// TestHandler_ValidateMunicipio tests the validate-municipio operation.
-func TestHandler_ValidateMunicipio(t *testing.T) {
+// TestHandler_ValidateMunicipality tests the validate-municipality operation.
+func TestHandler_ValidateMunicipality(t *testing.T) {
 	ctx := context.Background()
 	event := domain.LambdaEvent{
-		Body: `{"operation":"validate-municipio","municipio":"Madrid"}`,
+		Body: `{"operation":"validate-municipality","municipality":"Madrid"}`,
 	}
 
 	response, err := Handler(ctx, event)
@@ -128,11 +128,11 @@ func TestHandler_AutocompletePostal(t *testing.T) {
 	}
 }
 
-// TestHandler_AutocompleteMunicipio tests the autocomplete-municipio operation.
-func TestHandler_AutocompleteMunicipio(t *testing.T) {
+// TestHandler_AutocompleteMunicipality tests the autocomplete-municipality operation.
+func TestHandler_AutocompleteMunicipality(t *testing.T) {
 	ctx := context.Background()
 	event := domain.LambdaEvent{
-		Body: `{"operation":"autocomplete-municipio","query":"mad","limit":10}`,
+		Body: `{"operation":"autocomplete-municipality","query":"mad","limit":10}`,
 	}
 
 	response, err := Handler(ctx, event)
@@ -335,7 +335,7 @@ func TestApp_HandleValidateMunicipality(t *testing.T) {
 
 	ctx := context.Background()
 	event := domain.LambdaEvent{
-		Body: `{"operation":"validate-municipio","municipio":"Madrid"}`,
+		Body: `{"operation":"validate-municipality","municipality":"Madrid"}`,
 	}
 
 	response, err := app.handleValidateMunicipality(ctx, event)
@@ -379,7 +379,7 @@ func TestApp_HandleAutocompleteMunicipality(t *testing.T) {
 
 	ctx := context.Background()
 	event := domain.LambdaEvent{
-		Body: `{"operation":"autocomplete-municipio","query":"mad","limit":10}`,
+		Body: `{"operation":"autocomplete-municipality","query":"mad","limit":10}`,
 	}
 
 	response, err := app.handleAutocompleteMunicipality(ctx, event)
@@ -540,8 +540,8 @@ func TestApp_HandleValidateMunicipality_ErrorCases(t *testing.T) {
 		expectedStatus int
 	}{
 		{
-			name:           "Missing municipio (400)",
-			body:           `{"operation":"validate-municipio"}`,
+			name:           "Missing municipality (400)",
+			body:           `{"operation":"validate-municipality"}`,
 			expectedStatus: 400,
 		},
 	}
@@ -631,7 +631,7 @@ func TestApp_HandleAutocompleteMunicipality_ErrorCases(t *testing.T) {
 	}{
 		{
 			name:           "Missing query (400)",
-			body:           `{"operation":"autocomplete-municipio","limit":10}`,
+			body:           `{"operation":"autocomplete-municipality","limit":10}`,
 			expectedStatus: 400,
 		},
 	}

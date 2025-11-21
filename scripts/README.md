@@ -17,9 +17,9 @@ Used by:
 - `geocode-by-postal` operation - Forward geocoding (postal code/city → coords)
 - `reverse-geocode` operation - Reverse geocoding (GPS coords → nearest postal code)
 - `validate-postal` operation - Validate if postal code exists
-- `validate-municipio` operation - Validate if municipality exists
+- `validate-municipality` operation - Validate if municipality exists
 - `autocomplete-postal` operation - Autocomplete postal codes
-- `autocomplete-municipio` operation - Autocomplete municipalities
+- `autocomplete-municipality` operation - Autocomplete municipalities
 
 ## Usage
 
@@ -69,14 +69,14 @@ The embedded file is located at: `internal/infrastructure/provider/postal-codes-
   "28001": {
     "lat": 40.4168,
     "lon": -3.7038,
-    "municipio": "Madrid",
-    "provincia": "Madrid"
+    "municipality": "Madrid",
+    "province": "Madrid"
   },
   "08001": {
     "lat": 41.3851,
     "lon": 2.1734,
-    "municipio": "Barcelona",
-    "provincia": "Barcelona"
+    "municipality": "Barcelona",
+    "province": "Barcelona"
   }
 }
 ```
@@ -91,7 +91,7 @@ The embedded file is located at: `internal/infrastructure/provider/postal-codes-
 
 **Runtime (Lambda - Go):**
 - Load time: ~50ms (first cold start, data embedded in binary)
-- Lookup time: <1ms (postal code), ~5ms (municipio)
+- Lookup time: <1ms (postal code), ~5ms (municipality)
 - Memory: 128MB Lambda (50% reduction from Node.js)
 - Cold start: ~200ms (3-5x faster than Node.js ~500ms)
 

@@ -69,7 +69,7 @@ describe('Geocode ES E2E Tests', () => {
       expect(result).toHaveProperty('success', true);
       expect(result).toHaveProperty('coords');
       expect(result).toHaveProperty('municipality');
-      expect(result).toHaveProperty('provincia');
+      expect(result).toHaveProperty('province');
       expect(result).toHaveProperty('postalCode', '28001');
       expect(result).toHaveProperty('source', 'postal_code');
 
@@ -87,7 +87,7 @@ describe('Geocode ES E2E Tests', () => {
 
       console.log(`   ✅ Success in ${duration}ms`);
       console.log(`   Municipality: ${result.municipality}`);
-      console.log(`   Provincia: ${result.provincia}`);
+      console.log(`   Provincia: ${result.province}`);
       console.log(`   Coords: ${result.coords.lat}, ${result.coords.lon}`);
     }, 30000);
 
@@ -157,7 +157,7 @@ describe('Geocode ES E2E Tests', () => {
       expect(result).toHaveProperty('success', true);
       expect(result).toHaveProperty('city');
       expect(result).toHaveProperty('postalCode');
-      expect(result).toHaveProperty('provincia');
+      expect(result).toHaveProperty('province');
       expect(result).toHaveProperty('country', 'España');
       expect(result).toHaveProperty('distance');
 
@@ -302,8 +302,8 @@ describe('Geocode ES E2E Tests', () => {
       // All results should start with 280
       result.results.forEach((item: any) => {
         expect(item.postalCode).toMatch(/^280/);
-        expect(item).toHaveProperty('municipio');
-        expect(item).toHaveProperty('provincia');
+        expect(item).toHaveProperty('municipality');
+        expect(item).toHaveProperty('province');
       });
 
       console.log(`   ✅ Success in ${duration}ms`);
@@ -351,7 +351,7 @@ describe('Geocode ES E2E Tests', () => {
 
       console.log(`   ✅ Success in ${duration}ms`);
       console.log(`   Results: ${result.results.length}`);
-      console.log(`   Sample: ${result.results[0].municipality} (${result.results[0].provincia})`);
+      console.log(`   Sample: ${result.results[0].municipality} (${result.results[0].province})`);
     }, 30000);
 
     test('should return empty results for non-matching query', async () => {
