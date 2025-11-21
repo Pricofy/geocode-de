@@ -61,28 +61,28 @@ operations:
     channel:
       $ref: '#/channels/validatePostal'
     summary: Validate postal code
-    description: Checks if Spanish postal code exists in the database. Performance: <1ms.
+    description: Checks if Spanish postal code exists in the database. Performance: less than 1ms.
     
   validateMunicipality:
     action: receive
     channel:
       $ref: '#/channels/validateMunicipality'
     summary: Validate municipality
-    description: Checks if Spanish municipality exists in the database. Performance: <1ms.
+    description: Checks if Spanish municipality exists in the database. Performance: less than 1ms.
     
   autocompletePostal:
     action: receive
     channel:
       $ref: '#/channels/autocompletePostal'
     summary: Autocomplete postal code
-    description: Searches Spanish postal codes by prefix. Performance: <5ms.
+    description: Searches Spanish postal codes by prefix. Performance: less than 5ms.
     
   autocompleteMunicipality:
     action: receive
     channel:
       $ref: '#/channels/autocompleteMunicipality'
     summary: Autocomplete municipality
-    description: Searches Spanish municipalities by query (fuzzy search). Performance: <5ms.
+    description: Searches Spanish municipalities by query (fuzzy search). Performance: less than 5ms.
 
 channels:
   geocodeByPostal:
