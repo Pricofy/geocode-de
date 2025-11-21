@@ -39,7 +39,7 @@ servers:
     host: pricofy-geocode-es
     protocol: lambda
     protocolVersion: "1.0"
-    description: AWS Lambda Direct Invoke (function: pricofy-geocode-es)
+    description: "AWS Lambda Direct Invoke (function: pricofy-geocode-es)"
 
 operations:
   geocodeByPostal:
@@ -54,35 +54,35 @@ operations:
     channel:
       $ref: '#/channels/reverseGeocode'
     summary: Reverse geocode coordinates to postal code
-    description: Finds nearest Spanish postal code from GPS coordinates. Performance: ~10-20ms.
+    description: "Finds nearest Spanish postal code from GPS coordinates. Performance: ~10-20ms."
     
   validatePostal:
     action: receive
     channel:
       $ref: '#/channels/validatePostal'
     summary: Validate postal code
-    description: Checks if Spanish postal code exists in the database. Performance: less than 1ms.
+    description: "Checks if Spanish postal code exists in the database. Performance: less than 1ms."
     
   validateMunicipality:
     action: receive
     channel:
       $ref: '#/channels/validateMunicipality'
     summary: Validate municipality
-    description: Checks if Spanish municipality exists in the database. Performance: less than 1ms.
+    description: "Checks if Spanish municipality exists in the database. Performance: less than 1ms."
     
   autocompletePostal:
     action: receive
     channel:
       $ref: '#/channels/autocompletePostal'
     summary: Autocomplete postal code
-    description: Searches Spanish postal codes by prefix. Performance: less than 5ms.
+    description: "Searches Spanish postal codes by prefix. Performance: less than 5ms."
     
   autocompleteMunicipality:
     action: receive
     channel:
       $ref: '#/channels/autocompleteMunicipality'
     summary: Autocomplete municipality
-    description: Searches Spanish municipalities by query (fuzzy search). Performance: less than 5ms.
+    description: "Searches Spanish municipalities by query (fuzzy search). Performance: less than 5ms."
 
 channels:
   geocodeByPostal:
