@@ -8,9 +8,9 @@
  * - Geocode by Postal (postal code and municipality)
  * - Reverse Geocode (coordinates to postal code)
  * - Validate Postal (postal code validation)
- * - Validate Municipality (municipality validation)
+ * - Validate Municipio (municipality validation)
  * - Autocomplete Postal (prefix-based search)
- * - Autocomplete Municipality (fuzzy search)
+ * - Autocomplete Municipio (fuzzy search)
  * - Error Handling
  * - Performance Benchmarks
  */
@@ -68,8 +68,8 @@ describe('Geocode ES E2E Tests', () => {
       expect(response.statusCode).toBe(200);
       expect(result).toHaveProperty('success', true);
       expect(result).toHaveProperty('coords');
-      expect(result).toHaveProperty('municipality');
-      expect(result).toHaveProperty('province');
+      expect(result).toHaveProperty('municipio');
+      expect(result).toHaveProperty('provincia');
       expect(result).toHaveProperty('postalCode', '28001');
       expect(result).toHaveProperty('source', 'postal_code');
 
@@ -86,8 +86,8 @@ describe('Geocode ES E2E Tests', () => {
       expect(result.coords.lon).toBeLessThan(-3);
 
       console.log(`   ✅ Success in ${duration}ms`);
-      console.log(`   Municipality: ${result.municipality}`);
-      console.log(`   Provincia: ${result.province}`);
+      console.log(`   Municipio: ${result.municipio}`);
+      console.log(`   Provincia: ${result.provincia}`);
       console.log(`   Coords: ${result.coords.lat}, ${result.coords.lon}`);
     }, 30000);
 
@@ -103,10 +103,10 @@ describe('Geocode ES E2E Tests', () => {
       expect(response.statusCode).toBe(200);
       expect(result.success).toBe(true);
       expect(result.postalCode).toBe('08001');
-      expect(result.municipality).toContain('Barcelona');
+      expect(result.municipio).toContain('Barcelona');
 
       console.log(`   ✅ Success in ${duration}ms`);
-      console.log(`   Municipality: ${result.municipality}`);
+      console.log(`   Municipio: ${result.municipio}`);
     }, 30000);
 
     test('should geocode by municipality name (Madrid)', async () => {
@@ -120,8 +120,8 @@ describe('Geocode ES E2E Tests', () => {
 
       expect(response.statusCode).toBe(200);
       expect(result.success).toBe(true);
-      expect(result.municipality).toBe('Madrid');
-      expect(result.source).toBe('municipality');
+      expect(result.municipio).toBe('Madrid');
+      expect(result.source).toBe('municipio');
 
       console.log(`   ✅ Success in ${duration}ms`);
       console.log(`   Postal Code: ${result.postalCode}`);
@@ -157,7 +157,7 @@ describe('Geocode ES E2E Tests', () => {
       expect(result).toHaveProperty('success', true);
       expect(result).toHaveProperty('city');
       expect(result).toHaveProperty('postalCode');
-      expect(result).toHaveProperty('province');
+      expect(result).toHaveProperty('provincia');
       expect(result).toHaveProperty('country', 'España');
       expect(result).toHaveProperty('distance');
 
@@ -240,15 +240,15 @@ describe('Geocode ES E2E Tests', () => {
   });
 
   // ============================================================================
-  // Validate Municipality
+  // Validate Municipio
   // ============================================================================
 
-  describe('Validate Municipality', () => {
+  describe('Validate Municipio', () => {
     test('should validate existing municipality (Madrid)', async () => {
-      console.log('🧪 Testing validate-municipality with valid municipality');
+      console.log('🧪 Testing validate-municipio with valid municipality');
 
       const startTime = Date.now();
-      const response = await client.validateMunicipality('Madrid');
+      const response = await client.validateMunicipio('Madrid');
       const duration = Date.now() - startTime;
 
       const result = response.body;
@@ -262,10 +262,10 @@ describe('Geocode ES E2E Tests', () => {
     }, 30000);
 
     test('should invalidate non-existing municipality', async () => {
-      console.log('🧪 Testing validate-municipality with invalid municipality');
+      console.log('🧪 Testing validate-municipio with invalid municipality');
 
       const startTime = Date.now();
-      const response = await client.validateMunicipality('NonExistentCity');
+      const response = await client.validateMunicipio('NonExistentCity');
       const duration = Date.now() - startTime;
 
       const result = response.body;
@@ -302,13 +302,13 @@ describe('Geocode ES E2E Tests', () => {
       // All results should start with 280
       result.results.forEach((item: any) => {
         expect(item.postalCode).toMatch(/^280/);
-        expect(item).toHaveProperty('municipality');
-        expect(item).toHaveProperty('province');
+        expect(item).toHaveProperty('municipio');
+        expect(item).toHaveProperty('provincia');
       });
 
       console.log(`   ✅ Success in ${duration}ms`);
       console.log(`   Results: ${result.results.length}`);
-      console.log(`   Sample: ${result.results[0].postalCode} - ${result.results[0].municipality}`);
+      console.log(`   Sample: ${result.results[0].postalCode} - ${result.results[0].municipio}`);
     }, 30000);
 
     test('should return empty results for non-matching prefix', async () => {
@@ -326,15 +326,15 @@ describe('Geocode ES E2E Tests', () => {
   });
 
   // ============================================================================
-  // Autocomplete Municipality
+  // Autocomplete Municipio
   // ============================================================================
 
-  describe('Autocomplete Municipality', () => {
+  describe('Autocomplete Municipio', () => {
     test('should autocomplete municipalities starting with Mad', async () => {
-      console.log('🧪 Testing autocomplete-municipality with query Mad');
+      console.log('🧪 Testing autocomplete-municipio with query Mad');
 
       const startTime = Date.now();
-      const response = await client.autocompleteMunicipality('Mad', 10);
+      const response = await client.autocompleteMunicipio('Mad', 10);
       const duration = Date.now() - startTime;
 
       const result = response.body;
@@ -346,18 +346,18 @@ describe('Geocode ES E2E Tests', () => {
       expect(result.results.length).toBeGreaterThan(0);
 
       // Should include Madrid
-      const hasMadrid = result.results.some((item: any) => item.municipality === 'Madrid');
+      const hasMadrid = result.results.some((item: any) => item.municipio === 'Madrid');
       expect(hasMadrid).toBe(true);
 
       console.log(`   ✅ Success in ${duration}ms`);
       console.log(`   Results: ${result.results.length}`);
-      console.log(`   Sample: ${result.results[0].municipality} (${result.results[0].province})`);
+      console.log(`   Sample: ${result.results[0].municipio} (${result.results[0].provincia})`);
     }, 30000);
 
     test('should return empty results for non-matching query', async () => {
-      console.log('🧪 Testing autocomplete-municipality with non-matching query');
+      console.log('🧪 Testing autocomplete-municipio with non-matching query');
 
-      const response = await client.autocompleteMunicipality('XYZ123', 10);
+      const response = await client.autocompleteMunicipio('XYZ123', 10);
       const result = response.body;
 
       expect(response.statusCode).toBe(200);
