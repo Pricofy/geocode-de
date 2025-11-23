@@ -62,7 +62,7 @@ export class GeocodeEsStack extends cdk.Stack {
         ENVIRONMENT: props.environment,
       },
       description: 'Spanish postal code geocoding operations (routing handler) - Go implementation',
-      functionName: `pricofy-geocode-es`,
+      functionName: 'pricofy-geocode-es',
       logGroup: logGroup,
       tracing: lambda.Tracing.ACTIVE, // X-Ray tracing for observability
     });

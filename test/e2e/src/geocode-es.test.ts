@@ -32,6 +32,7 @@ describe('Geocode ES E2E Tests', () => {
     console.log('🚀 Starting Geocode ES E2E Tests');
     console.log(`🌍 Environment: ${config.environment}`);
     console.log(`📍 Lambda Function: ${config.lambdaFunctionName} (testing by name, not ARN/ID)`);
+    console.log(`💡 Note: Function name is the same across environments. Environment is differentiated by AWS account.`);
     console.log(`🌐 AWS Region: ${config.awsRegion}`);
     console.log(`⏱️  Test Timeout: ${config.testTimeout}ms\n`);
   });

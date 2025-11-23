@@ -22,9 +22,8 @@ export interface TestConfig {
 /**
  * Get test configuration from environment variables
  * 
- * The Lambda function name is determined by environment:
- * - dev: 'pricofy-geocode-es-dev' (or 'pricofy-geocode-es' if not specified)
- * - prod: 'pricofy-geocode-es-prod'
+ * The Lambda function name is 'pricofy-geocode-es' for both dev and prod environments.
+ * Environment is differentiated by AWS account (via AWS_PROFILE), not by function name.
  * 
  * We search by function name, not by ARN or ID, to ensure tests work after redeployments.
  * 
@@ -49,15 +48,15 @@ export function getConfig(): TestConfig {
     }
   }
   
-  // Determine Lambda function name based on environment
-  const defaultFunctionName = environment === 'prod' 
-    ? 'pricofy-geocode-es-prod' 
-    : 'pricofy-geocode-es-dev';
+  // Lambda function name is the same across environments (environment is differentiated by AWS account)
+  // The function is deployed as 'pricofy-geocode-es' in both dev and prod accounts
+  const defaultFunctionName = 'pricofy-geocode-es';
   
   return {
     awsRegion: process.env.AWS_REGION || 'eu-west-1',
-    // Lambda function name: use explicit name or default based on environment
+    // Lambda function name: use explicit name or default
     // We use the function name, not ARN or ID, so tests work after redeployments
+    // Note: Environment is differentiated by AWS account, not by function name
     lambdaFunctionName: process.env.LAMBDA_FUNCTION_NAME || defaultFunctionName,
     environment,
     testTimeout: parseInt(process.env.TEST_TIMEOUT || '60000', 10),

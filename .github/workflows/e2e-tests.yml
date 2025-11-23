@@ -203,8 +203,8 @@ jobs:
       # Passes ENV to Makefile which automatically sets AWS_PROFILE
       - name: Run E2E tests
         env:
-          AWS_REGION: eu-west-1
-          LAMBDA_FUNCTION_NAME: pricofy-geocode-es-${{ steps.env.outputs.environment }}
+          AWS_REGION: ${{ vars.AWS_REGION || 'eu-west-1' }}
+          LAMBDA_FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION_NAME || 'pricofy-geocode-es' }}
           TEST_TIMEOUT: 60000
         run: make test-e2e ENV=${{ steps.env.outputs.environment }}
 
