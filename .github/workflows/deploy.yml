@@ -5,12 +5,11 @@
 # Purpose: Deploy the Spanish Geocoding Service Lambda to AWS via CDK
 #
 # Triggers:
-#   - Push to develop → Auto-deploy to DEV environment
-#   - Manual dispatch → Deploy to DEV or PROD (user choice)
+#   - Manual dispatch only → Deploy to DEV or PROD (user choice)
 #
 # Environments:
-#   - dev  → Development (auto on push to develop)
-#   - prod → Production (manual dispatch only)
+#   - dev  → Development environment
+#   - prod → Production environment
 #
 # AWS Authentication:
 #   Uses OIDC (OpenID Connect) with IAM roles for secure, keyless auth
@@ -30,10 +29,6 @@
 name: Deploy Geocode ES
 
 on:
-  # Automatic deployment to dev when code is pushed to develop branch
-  push:
-    branches: [develop]
-  
   # Manual deployment trigger via GitHub UI (allows choosing environment)
   workflow_dispatch:
     inputs:
@@ -66,7 +61,7 @@ jobs:
       # ========================================
       # Step 2: Determine Target Environment
       # ========================================
-      # Uses the environment from push (develop → dev) or workflow_dispatch input
+      # Uses the environment selected by user in workflow_dispatch
       #
       # Sets outputs:
       #   - environment: Target environment (dev/prod)
@@ -76,15 +71,10 @@ jobs:
         id: env
         run: |
           set -e
+          ENVIRONMENT="${{ github.event.inputs.environment }}"
+          ENVIRONMENT="${ENVIRONMENT:-dev}"
           
-          if [ "${{ github.event_name }}" == "push" ]; then
-            ENVIRONMENT="dev"
-            echo "🔍 Auto-deploying to DEV (push to develop branch)"
-          else
-            ENVIRONMENT="${{ github.event.inputs.environment }}"
-            ENVIRONMENT="${ENVIRONMENT:-dev}"
-            echo "🔍 Manual deployment to: ${ENVIRONMENT}"
-          fi
+          echo "🔍 Manual deployment to: ${ENVIRONMENT}"
           
           echo "environment=${ENVIRONMENT}" >> $GITHUB_OUTPUT
           
