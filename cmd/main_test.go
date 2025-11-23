@@ -2,662 +2,212 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/pricofy/geocode-es/internal/domain"
 )
 
-// TestNewApp verifies that the App can be initialized successfully.
-func TestNewApp(t *testing.T) {
+func TestHandleRequest(t *testing.T) {
 	app, err := NewApp()
-
 	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
+		t.Fatalf("Failed to create app: %v", err)
 	}
 
+	ctx := context.Background()
+
+	tests := []struct {
+		name           string
+		event          domain.LambdaEvent
+		wantStatusCode int
+		wantBody       string // Optional: check for substring in body
+	}{
+		// --- Geocode By Postal ---
+		{
+			name: "geocode-by-postal success",
+			event: domain.LambdaEvent{
+				Body: `{"operation":"geocode-by-postal","postalCode":"28001"}`,
+			},
+			wantStatusCode: 200,
+			wantBody:       `"postalCode":"28001"`,
+		},
+		{
+			name: "geocode-by-postal not found",
+			event: domain.LambdaEvent{
+				Body: `{"operation":"geocode-by-postal","postalCode":"99999"}`,
+			},
+			wantStatusCode: 404,
+			wantBody:       "not found",
+		},
+		{
+			name: "geocode-by-postal invalid format",
+			event: domain.LambdaEvent{
+				Body: `{"operation":"geocode-by-postal","postalCode":"123"}`,
+			},
+			wantStatusCode: 400,
+			wantBody:       "Invalid postal code format",
+		},
+
+		// --- Reverse Geocode ---
+		{
+			name: "reverse-geocode success",
+			event: domain.LambdaEvent{
+				Body: `{"operation":"reverse-geocode","lat":40.4168,"lon":-3.7038}`,
+			},
+			wantStatusCode: 200,
+			wantBody:       `"postalCode"`,
+		},
+		{
+			name: "reverse-geocode invalid coordinates",
+			event: domain.LambdaEvent{
+				Body: `{"operation":"reverse-geocode","lat":999,"lon":999}`,
+			},
+			wantStatusCode: 400,
+			wantBody:       "Invalid coordinates",
+		},
+
+		// --- Validate Postal ---
+		{
+			name: "validate-postal success",
+			event: domain.LambdaEvent{
+				Body: `{"operation":"validate-postal","postalCode":"28001"}`,
+			},
+			wantStatusCode: 200,
+			wantBody:       `"valid":true`,
+		},
+		{
+			name: "validate-postal invalid",
+			event: domain.LambdaEvent{
+				Body: `{"operation":"validate-postal","postalCode":"99999"}`,
+			},
+			wantStatusCode: 200,
+			wantBody:       `"valid":false`,
+		},
+		{
+			name: "validate-postal missing input",
+			event: domain.LambdaEvent{
+				Body: `{"operation":"validate-postal"}`,
+			},
+			wantStatusCode: 400,
+			wantBody:       "required",
+		},
+
+		// --- Validate Municipality ---
+		{
+			name: "validate-municipality success",
+			event: domain.LambdaEvent{
+				Body: `{"operation":"validate-municipality","municipality":"Madrid"}`,
+			},
+			wantStatusCode: 200,
+			wantBody:       `"valid":true`,
+		},
+		{
+			name: "validate-municipality invalid",
+			event: domain.LambdaEvent{
+				Body: `{"operation":"validate-municipality","municipality":"NonExistent"}`,
+			},
+			wantStatusCode: 200,
+			wantBody:       `"valid":false`,
+		},
+		{
+			name: "validate-municipality missing input",
+			event: domain.LambdaEvent{
+				Body: `{"operation":"validate-municipality"}`,
+			},
+			wantStatusCode: 400,
+			wantBody:       "required",
+		},
+
+		// --- Autocomplete Postal ---
+		{
+			name: "autocomplete-postal success",
+			event: domain.LambdaEvent{
+				Body: `{"operation":"autocomplete-postal","prefix":"280"}`,
+			},
+			wantStatusCode: 200,
+			wantBody:       `"results"`,
+		},
+		{
+			name: "autocomplete-postal missing prefix",
+			event: domain.LambdaEvent{
+				Body: `{"operation":"autocomplete-postal"}`,
+			},
+			wantStatusCode: 400,
+			wantBody:       "required",
+		},
+
+		// --- Autocomplete Municipality ---
+		{
+			name: "autocomplete-municipality success",
+			event: domain.LambdaEvent{
+				Body: `{"operation":"autocomplete-municipality","query":"mad"}`,
+			},
+			wantStatusCode: 200,
+			wantBody:       `"results"`,
+		},
+		{
+			name: "autocomplete-municipality missing query",
+			event: domain.LambdaEvent{
+				Body: `{"operation":"autocomplete-municipality"}`,
+			},
+			wantStatusCode: 400,
+			wantBody:       "required",
+		},
+
+		// --- General Errors ---
+		{
+			name: "invalid json body",
+			event: domain.LambdaEvent{
+				Body: `invalid json`,
+			},
+			wantStatusCode: 400,
+			wantBody:       "Invalid JSON",
+		},
+		{
+			name: "unknown operation",
+			event: domain.LambdaEvent{
+				Body: `{"operation":"unknown-op"}`,
+			},
+			wantStatusCode: 400,
+			wantBody:       "Unknown operation",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			response, err := app.HandleRequest(ctx, tt.event)
+
+			// HandleRequest should not return error for these cases, but return error response
+			if err != nil {
+				t.Errorf("HandleRequest returned unexpected error: %v", err)
+			}
+
+			if response.StatusCode != tt.wantStatusCode {
+				t.Errorf("Expected status code %d, got %d. Body: %s", tt.wantStatusCode, response.StatusCode, response.Body)
+			}
+
+			if tt.wantBody != "" {
+				if !strings.Contains(response.Body, tt.wantBody) {
+					t.Errorf("Expected body to contain %q, got %q", tt.wantBody, response.Body)
+				}
+			}
+		})
+	}
+}
+
+func TestInit(t *testing.T) {
+	// Test that NewApp works (it's called in init but we can't easily test init directly without side effects)
+	app, err := NewApp()
+	if err != nil {
+		t.Errorf("NewApp() error = %v", err)
+	}
 	if app == nil {
-		t.Fatal("NewApp() returned nil app")
+		t.Error("NewApp() returned nil app")
 	}
-
 	if app.service == nil {
-		t.Fatal("App.service is nil")
+		t.Error("NewApp() returned app with nil service")
 	}
-
 	if app.logger == nil {
-		t.Fatal("App.logger is nil")
-	}
-}
-
-// TestHandler_GeocodeByPostal tests the geocode-by-postal operation.
-func TestHandler_GeocodeByPostal(t *testing.T) {
-	ctx := context.Background()
-	event := domain.LambdaEvent{
-		Body: `{"operation":"geocode-by-postal","postalCode":"28001"}`,
-	}
-
-	response, err := Handler(ctx, event)
-
-	if err != nil {
-		t.Fatalf("Handler() failed: %v", err)
-	}
-
-	if response.StatusCode != 200 {
-		t.Errorf("Expected status 200, got %d", response.StatusCode)
-	}
-
-	var body map[string]interface{}
-	if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
-		t.Fatalf("Failed to parse response body: %v", err)
-	}
-
-	if success, ok := body["success"].(bool); !ok || !success {
-		t.Errorf("Expected success=true, got %v", body["success"])
-	}
-}
-
-// TestHandler_ReverseGeocode tests the reverse-geocode operation.
-func TestHandler_ReverseGeocode(t *testing.T) {
-	ctx := context.Background()
-	event := domain.LambdaEvent{
-		Body: `{"operation":"reverse-geocode","lat":40.4168,"lon":-3.7038}`,
-	}
-
-	response, err := Handler(ctx, event)
-
-	if err != nil {
-		t.Fatalf("Handler() failed: %v", err)
-	}
-
-	if response.StatusCode != 200 {
-		t.Errorf("Expected status 200, got %d", response.StatusCode)
-	}
-}
-
-// TestHandler_ValidatePostal tests the validate-postal operation.
-func TestHandler_ValidatePostal(t *testing.T) {
-	ctx := context.Background()
-	event := domain.LambdaEvent{
-		Body: `{"operation":"validate-postal","postalCode":"28001"}`,
-	}
-
-	response, err := Handler(ctx, event)
-
-	if err != nil {
-		t.Fatalf("Handler() failed: %v", err)
-	}
-
-	if response.StatusCode != 200 {
-		t.Errorf("Expected status 200, got %d", response.StatusCode)
-	}
-}
-
-// TestHandler_ValidateMunicipality tests the validate-municipality operation.
-func TestHandler_ValidateMunicipality(t *testing.T) {
-	ctx := context.Background()
-	event := domain.LambdaEvent{
-		Body: `{"operation":"validate-municipality","municipality":"Madrid"}`,
-	}
-
-	response, err := Handler(ctx, event)
-
-	if err != nil {
-		t.Fatalf("Handler() failed: %v", err)
-	}
-
-	if response.StatusCode != 200 {
-		t.Errorf("Expected status 200, got %d", response.StatusCode)
-	}
-}
-
-// TestHandler_AutocompletePostal tests the autocomplete-postal operation.
-func TestHandler_AutocompletePostal(t *testing.T) {
-	ctx := context.Background()
-	event := domain.LambdaEvent{
-		Body: `{"operation":"autocomplete-postal","prefix":"280","limit":10}`,
-	}
-
-	response, err := Handler(ctx, event)
-
-	if err != nil {
-		t.Fatalf("Handler() failed: %v", err)
-	}
-
-	if response.StatusCode != 200 {
-		t.Errorf("Expected status 200, got %d", response.StatusCode)
-	}
-}
-
-// TestHandler_AutocompleteMunicipality tests the autocomplete-municipality operation.
-func TestHandler_AutocompleteMunicipality(t *testing.T) {
-	ctx := context.Background()
-	event := domain.LambdaEvent{
-		Body: `{"operation":"autocomplete-municipality","query":"mad","limit":10}`,
-	}
-
-	response, err := Handler(ctx, event)
-
-	if err != nil {
-		t.Fatalf("Handler() failed: %v", err)
-	}
-
-	if response.StatusCode != 200 {
-		t.Errorf("Expected status 200, got %d", response.StatusCode)
-	}
-}
-
-// TestHandler_UnknownOperation tests handling of unknown operations.
-func TestHandler_UnknownOperation(t *testing.T) {
-	ctx := context.Background()
-	event := domain.LambdaEvent{
-		Body: `{"operation":"unknown-operation"}`,
-	}
-
-	response, err := Handler(ctx, event)
-
-	if err != nil {
-		t.Fatalf("Handler() failed: %v", err)
-	}
-
-	if response.StatusCode != 400 {
-		t.Errorf("Expected status 400, got %d", response.StatusCode)
-	}
-
-	var body map[string]interface{}
-	if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
-		t.Fatalf("Failed to parse response body: %v", err)
-	}
-
-	if success, ok := body["success"].(bool); !ok || success {
-		t.Errorf("Expected success=false, got %v", body["success"])
-	}
-}
-
-// TestHandler_InvalidJSON tests handling of invalid JSON.
-func TestHandler_InvalidJSON(t *testing.T) {
-	ctx := context.Background()
-	event := domain.LambdaEvent{
-		Body: `{invalid json}`,
-	}
-
-	response, err := Handler(ctx, event)
-
-	if err != nil {
-		t.Fatalf("Handler() failed: %v", err)
-	}
-
-	if response.StatusCode != 400 {
-		t.Errorf("Expected status 400, got %d", response.StatusCode)
-	}
-}
-
-// TestHandler_NotFound tests 404 error handling.
-func TestHandler_NotFound(t *testing.T) {
-	ctx := context.Background()
-	event := domain.LambdaEvent{
-		Body: `{"operation":"geocode-by-postal","postalCode":"99999"}`,
-	}
-
-	response, err := Handler(ctx, event)
-
-	if err != nil {
-		t.Fatalf("Handler() failed: %v", err)
-	}
-
-	if response.StatusCode != 404 {
-		t.Errorf("Expected status 404, got %d", response.StatusCode)
-	}
-}
-
-// TestApp_HandleRequest tests the App.HandleRequest method directly.
-func TestApp_HandleRequest(t *testing.T) {
-	app, err := NewApp()
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
-
-	tests := []struct {
-		name           string
-		body           string
-		expectedStatus int
-	}{
-		{
-			name:           "Valid geocode-by-postal",
-			body:           `{"operation":"geocode-by-postal","postalCode":"28001"}`,
-			expectedStatus: 200,
-		},
-		{
-			name:           "Valid reverse-geocode",
-			body:           `{"operation":"reverse-geocode","lat":40.4168,"lon":-3.7038}`,
-			expectedStatus: 200,
-		},
-		{
-			name:           "Invalid JSON",
-			body:           `{invalid}`,
-			expectedStatus: 400,
-		},
-		{
-			name:           "Unknown operation",
-			body:           `{"operation":"unknown"}`,
-			expectedStatus: 400,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
-			event := domain.LambdaEvent{Body: tt.body}
-
-			response, err := app.HandleRequest(ctx, event)
-			if err != nil {
-				t.Fatalf("HandleRequest() failed: %v", err)
-			}
-
-			if response.StatusCode != tt.expectedStatus {
-				t.Errorf("Expected status %d, got %d", tt.expectedStatus, response.StatusCode)
-			}
-		})
-	}
-}
-
-// TestApp_HandleGeocodeByPostal tests the handleGeocodeByPostal method.
-func TestApp_HandleGeocodeByPostal(t *testing.T) {
-	app, err := NewApp()
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
-
-	ctx := context.Background()
-	event := domain.LambdaEvent{
-		Body: `{"operation":"geocode-by-postal","postalCode":"28001"}`,
-	}
-
-	response, err := app.handleGeocodeByPostal(ctx, event)
-	if err != nil {
-		t.Fatalf("handleGeocodeByPostal() failed: %v", err)
-	}
-
-	if response.StatusCode != 200 {
-		t.Errorf("Expected status 200, got %d", response.StatusCode)
-	}
-}
-
-// TestApp_HandleReverseGeocode tests the handleReverseGeocode method.
-func TestApp_HandleReverseGeocode(t *testing.T) {
-	app, err := NewApp()
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
-
-	ctx := context.Background()
-	event := domain.LambdaEvent{
-		Body: `{"operation":"reverse-geocode","lat":40.4168,"lon":-3.7038}`,
-	}
-
-	response, err := app.handleReverseGeocode(ctx, event)
-	if err != nil {
-		t.Fatalf("handleReverseGeocode() failed: %v", err)
-	}
-
-	if response.StatusCode != 200 {
-		t.Errorf("Expected status 200, got %d", response.StatusCode)
-	}
-}
-
-// TestApp_HandleValidatePostal tests the handleValidatePostal method.
-func TestApp_HandleValidatePostal(t *testing.T) {
-	app, err := NewApp()
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
-
-	ctx := context.Background()
-	event := domain.LambdaEvent{
-		Body: `{"operation":"validate-postal","postalCode":"28001"}`,
-	}
-
-	response, err := app.handleValidatePostal(ctx, event)
-	if err != nil {
-		t.Fatalf("handleValidatePostal() failed: %v", err)
-	}
-
-	if response.StatusCode != 200 {
-		t.Errorf("Expected status 200, got %d", response.StatusCode)
-	}
-}
-
-// TestApp_HandleValidateMunicipality tests the handleValidateMunicipality method.
-func TestApp_HandleValidateMunicipality(t *testing.T) {
-	app, err := NewApp()
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
-
-	ctx := context.Background()
-	event := domain.LambdaEvent{
-		Body: `{"operation":"validate-municipality","municipality":"Madrid"}`,
-	}
-
-	response, err := app.handleValidateMunicipality(ctx, event)
-	if err != nil {
-		t.Fatalf("handleValidateMunicipality() failed: %v", err)
-	}
-
-	if response.StatusCode != 200 {
-		t.Errorf("Expected status 200, got %d", response.StatusCode)
-	}
-}
-
-// TestApp_HandleAutocompletePostal tests the handleAutocompletePostal method.
-func TestApp_HandleAutocompletePostal(t *testing.T) {
-	app, err := NewApp()
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
-
-	ctx := context.Background()
-	event := domain.LambdaEvent{
-		Body: `{"operation":"autocomplete-postal","prefix":"280","limit":10}`,
-	}
-
-	response, err := app.handleAutocompletePostal(ctx, event)
-	if err != nil {
-		t.Fatalf("handleAutocompletePostal() failed: %v", err)
-	}
-
-	if response.StatusCode != 200 {
-		t.Errorf("Expected status 200, got %d", response.StatusCode)
-	}
-}
-
-// TestApp_HandleAutocompleteMunicipality tests the handleAutocompleteMunicipality method.
-func TestApp_HandleAutocompleteMunicipality(t *testing.T) {
-	app, err := NewApp()
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
-
-	ctx := context.Background()
-	event := domain.LambdaEvent{
-		Body: `{"operation":"autocomplete-municipality","query":"mad","limit":10}`,
-	}
-
-	response, err := app.handleAutocompleteMunicipality(ctx, event)
-	if err != nil {
-		t.Fatalf("handleAutocompleteMunicipality() failed: %v", err)
-	}
-
-	if response.StatusCode != 200 {
-		t.Errorf("Expected status 200, got %d", response.StatusCode)
-	}
-}
-
-// TestApp_HandleGeocodeByPostal_ErrorCases tests error handling in handleGeocodeByPostal.
-func TestApp_HandleGeocodeByPostal_ErrorCases(t *testing.T) {
-	app, err := NewApp()
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
-
-	tests := []struct {
-		name           string
-		body           string
-		expectedStatus int
-	}{
-		{
-			name:           "Not found error (404)",
-			body:           `{"operation":"geocode-by-postal","postalCode":"99999"}`,
-			expectedStatus: 404,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
-			event := domain.LambdaEvent{Body: tt.body}
-
-			response, err := app.handleGeocodeByPostal(ctx, event)
-			if err != nil {
-				t.Fatalf("handleGeocodeByPostal() failed: %v", err)
-			}
-
-			if response.StatusCode != tt.expectedStatus {
-				t.Errorf("Expected status %d, got %d", tt.expectedStatus, response.StatusCode)
-			}
-
-			var body map[string]interface{}
-			if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
-				t.Fatalf("Failed to parse response body: %v", err)
-			}
-
-			if body["success"] != false {
-				t.Errorf("Expected success=false, got %v", body["success"])
-			}
-		})
-	}
-}
-
-// TestApp_HandleReverseGeocode_ErrorCases tests error handling in handleReverseGeocode.
-func TestApp_HandleReverseGeocode_ErrorCases(t *testing.T) {
-	app, err := NewApp()
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
-
-	tests := []struct {
-		name           string
-		body           string
-		expectedStatus int
-	}{
-		{
-			name:           "Invalid coordinates (400)",
-			body:           `{"operation":"reverse-geocode","lat":999,"lon":999}`,
-			expectedStatus: 400,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
-			event := domain.LambdaEvent{Body: tt.body}
-
-			response, err := app.handleReverseGeocode(ctx, event)
-			if err != nil {
-				t.Fatalf("handleReverseGeocode() failed: %v", err)
-			}
-
-			if response.StatusCode != tt.expectedStatus {
-				t.Errorf("Expected status %d, got %d", tt.expectedStatus, response.StatusCode)
-			}
-
-			var body map[string]interface{}
-			if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
-				t.Fatalf("Failed to parse response body: %v", err)
-			}
-
-			if body["success"] != false {
-				t.Errorf("Expected success=false, got %v", body["success"])
-			}
-		})
-	}
-}
-
-// TestApp_HandleValidatePostal_ErrorCases tests error handling in handleValidatePostal.
-func TestApp_HandleValidatePostal_ErrorCases(t *testing.T) {
-	app, err := NewApp()
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
-
-	tests := []struct {
-		name           string
-		body           string
-		expectedStatus int
-	}{
-		{
-			name:           "Missing postal code (400)",
-			body:           `{"operation":"validate-postal"}`,
-			expectedStatus: 400,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
-			event := domain.LambdaEvent{Body: tt.body}
-
-			response, err := app.handleValidatePostal(ctx, event)
-			if err != nil {
-				t.Fatalf("handleValidatePostal() failed: %v", err)
-			}
-
-			if response.StatusCode != tt.expectedStatus {
-				t.Errorf("Expected status %d, got %d", tt.expectedStatus, response.StatusCode)
-			}
-
-			var body map[string]interface{}
-			if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
-				t.Fatalf("Failed to parse response body: %v", err)
-			}
-
-			if body["success"] != false {
-				t.Errorf("Expected success=false, got %v", body["success"])
-			}
-		})
-	}
-}
-
-// TestApp_HandleValidateMunicipality_ErrorCases tests error handling in handleValidateMunicipality.
-func TestApp_HandleValidateMunicipality_ErrorCases(t *testing.T) {
-	app, err := NewApp()
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
-
-	tests := []struct {
-		name           string
-		body           string
-		expectedStatus int
-	}{
-		{
-			name:           "Missing municipality (400)",
-			body:           `{"operation":"validate-municipality"}`,
-			expectedStatus: 400,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
-			event := domain.LambdaEvent{Body: tt.body}
-
-			response, err := app.handleValidateMunicipality(ctx, event)
-			if err != nil {
-				t.Fatalf("handleValidateMunicipality() failed: %v", err)
-			}
-
-			if response.StatusCode != tt.expectedStatus {
-				t.Errorf("Expected status %d, got %d", tt.expectedStatus, response.StatusCode)
-			}
-
-			var body map[string]interface{}
-			if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
-				t.Fatalf("Failed to parse response body: %v", err)
-			}
-
-			if body["success"] != false {
-				t.Errorf("Expected success=false, got %v", body["success"])
-			}
-		})
-	}
-}
-
-// TestApp_HandleAutocompletePostal_ErrorCases tests error handling in handleAutocompletePostal.
-func TestApp_HandleAutocompletePostal_ErrorCases(t *testing.T) {
-	app, err := NewApp()
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
-
-	tests := []struct {
-		name           string
-		body           string
-		expectedStatus int
-	}{
-		{
-			name:           "Missing prefix (400)",
-			body:           `{"operation":"autocomplete-postal","limit":10}`,
-			expectedStatus: 400,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
-			event := domain.LambdaEvent{Body: tt.body}
-
-			response, err := app.handleAutocompletePostal(ctx, event)
-			if err != nil {
-				t.Fatalf("handleAutocompletePostal() failed: %v", err)
-			}
-
-			if response.StatusCode != tt.expectedStatus {
-				t.Errorf("Expected status %d, got %d", tt.expectedStatus, response.StatusCode)
-			}
-
-			var body map[string]interface{}
-			if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
-				t.Fatalf("Failed to parse response body: %v", err)
-			}
-
-			if body["success"] != false {
-				t.Errorf("Expected success=false, got %v", body["success"])
-			}
-		})
-	}
-}
-
-// TestApp_HandleAutocompleteMunicipality_ErrorCases tests error handling in handleAutocompleteMunicipality.
-func TestApp_HandleAutocompleteMunicipality_ErrorCases(t *testing.T) {
-	app, err := NewApp()
-	if err != nil {
-		t.Fatalf("NewApp() failed: %v", err)
-	}
-
-	tests := []struct {
-		name           string
-		body           string
-		expectedStatus int
-	}{
-		{
-			name:           "Missing query (400)",
-			body:           `{"operation":"autocomplete-municipality","limit":10}`,
-			expectedStatus: 400,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
-			event := domain.LambdaEvent{Body: tt.body}
-
-			response, err := app.handleAutocompleteMunicipality(ctx, event)
-			if err != nil {
-				t.Fatalf("handleAutocompleteMunicipality() failed: %v", err)
-			}
-
-			if response.StatusCode != tt.expectedStatus {
-				t.Errorf("Expected status %d, got %d", tt.expectedStatus, response.StatusCode)
-			}
-
-			var body map[string]interface{}
-			if err := json.Unmarshal([]byte(response.Body), &body); err != nil {
-				t.Fatalf("Failed to parse response body: %v", err)
-			}
-
-			if body["success"] != false {
-				t.Errorf("Expected success=false, got %v", body["success"])
-			}
-		})
+		t.Error("NewApp() returned app with nil logger")
 	}
 }

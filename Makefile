@@ -57,7 +57,8 @@ all: build test ## Build and test (default)
 # Build the binary for Lambda (Linux/ARM64 - Graviton2)
 build: ## Build the Go binary for AWS Lambda (Linux/ARM64 - Graviton2)
 	@echo "🔨 Building for Lambda (Linux/ARM64 - Graviton2)..."
-	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 $(GO) build -ldflags="-s -w" -o $(BINARY) ./cmd
+	@mkdir -p dist
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 $(GO) build -ldflags="-s -w" -o dist/bootstrap ./cmd
 	@echo "✅ Build complete"
 
 # Build for local development (native architecture)
