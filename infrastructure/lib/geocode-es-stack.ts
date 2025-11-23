@@ -43,14 +43,14 @@ export class GeocodeEsStack extends cdk.Stack {
     // ===========================================
     // Lambda: geocode (routing handler)
     // ===========================================
-    
+
     // Create log group explicitly to avoid deprecated logRetention
     const logGroup = new logs.LogGroup(this, 'GeocodeLogGroup', {
-      logGroupName: `/aws/lambda/pricofy-geocode-es-${props.environment}`,
+      logGroupName: `/aws/lambda/pricofy-geocode-es`,
       retention: logs.RetentionDays.ONE_MONTH, // GDPR compliance (30 days)
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
-    
+
     this.geocodeFunction = new lambda.Function(this, 'GeocodeFunction', {
       code: lambda.Code.fromAsset(path.join(__dirname, '../../dist')),
       handler: 'bootstrap', // Go Lambda entry point
@@ -62,7 +62,7 @@ export class GeocodeEsStack extends cdk.Stack {
         ENVIRONMENT: props.environment,
       },
       description: 'Spanish postal code geocoding operations (routing handler) - Go implementation',
-      functionName: `pricofy-geocode-es-${props.environment}`,
+      functionName: `pricofy-geocode-es`,
       logGroup: logGroup,
       tracing: lambda.Tracing.ACTIVE, // X-Ray tracing for observability
     });
@@ -70,24 +70,24 @@ export class GeocodeEsStack extends cdk.Stack {
     // ===========================================
     // Exports (for pricofy-location-service to import)
     // ===========================================
-    
+
     // Export function ARN for pricofy-location-service to configure permissions
     new cdk.CfnOutput(this, 'GeocodeEsArn', {
       value: this.geocodeFunction.functionArn,
-      exportName: `Pricofy-GeocodeEsArn-${props.environment}`,
+      exportName: `Pricofy-GeocodeEsArn`,
       description: 'ARN of geocode-es Lambda function',
     });
 
     new cdk.CfnOutput(this, 'GeocodeEsName', {
       value: this.geocodeFunction.functionName,
-      exportName: `Pricofy-GeocodeEsName-${props.environment}`,
+      exportName: `Pricofy-GeocodeEsName`,
       description: 'Name of geocode-es Lambda function',
     });
 
     // ===========================================
     // Security Notice
     // ===========================================
-    
+
     new cdk.CfnOutput(this, 'SecurityNotice', {
       value: 'Resource-Based Policies configured via pricofy-infra stack',
       description: 'Lambda function is private - only invokable by pricofy-location-service IAM role',
@@ -96,7 +96,7 @@ export class GeocodeEsStack extends cdk.Stack {
     // ===========================================
     // Tags
     // ===========================================
-    
+
     cdk.Tags.of(this).add('Project', 'Pricofy');
     cdk.Tags.of(this).add('Environment', props.environment);
     cdk.Tags.of(this).add('Component', 'Geocode-ES');
@@ -113,7 +113,7 @@ export class GeocodeEsStack extends cdk.Stack {
  * // In pricofy-infra stack:
  * import { Fn } from 'aws-cdk-lib';
  * 
- * const geocodeEsArn = Fn.importValue(`Pricofy-GeocodeEsArn-${environment}`);
+ * const geocodeEsArn = Fn.importValue(`Pricofy-GeocodeEsArn`);
  * 
  * // Grant pricofy-location-service role permission to invoke
  * locationServiceRole.addToPolicy(new iam.PolicyStatement({

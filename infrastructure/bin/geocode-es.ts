@@ -25,7 +25,7 @@ const stackProps: cdk.StackProps = {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: 'eu-west-1',
   },
-  tags: { 
+  tags: {
     Project: "Pricofy",
     Service: "Geocode-ES",
     Environment: environment,
@@ -33,13 +33,13 @@ const stackProps: cdk.StackProps = {
 };
 
 // Geocode ES Stack: Lambda function for Spanish postal code operations
-new GeocodeEsStack(app, `PricofyGeocodeEsStack-${environment}`, {
+new GeocodeEsStack(app, `PricofyGeocodeEsStack`, {
   ...stackProps,
   description: `Pricofy Geocode ES (${environment}) - Spanish postal code geocoding Lambda function`,
   environment,
 });
 
-console.log(`✅ Stack name: PricofyGeocodeEsStack-${environment}`);
+console.log(`✅ Stack name: PricofyGeocodeEsStack`);
 
 app.synth();
 

@@ -48,8 +48,8 @@ ENV ?= dev
 
 # Service configuration
 SERVICE_NAME = pricofy-geocode-es
-STACK_SERVICE = PricofyGeocodeEsStack-$(ENV)
-LAMBDA_GEOCODE = pricofy-geocode-es-$(ENV)
+STACK_SERVICE = PricofyGeocodeEsStack
+LAMBDA_GEOCODE = pricofy-geocode-es
 
 # Default target: build and test
 all: build test ## Build and test (default)

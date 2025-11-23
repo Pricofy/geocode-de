@@ -334,7 +334,7 @@ describe('Geocode ES E2E Tests', () => {
       console.log('🧪 Testing autocomplete-municipio with query Mad');
 
       const startTime = Date.now();
-      const response = await client.autocompleteMunicipio('Mad', 10);
+      const response = await client.autocompleteMunicipality('Mad', 10);
       const duration = Date.now() - startTime;
 
       const result = response.body;
@@ -357,7 +357,7 @@ describe('Geocode ES E2E Tests', () => {
     test('should return empty results for non-matching query', async () => {
       console.log('🧪 Testing autocomplete-municipio with non-matching query');
 
-      const response = await client.autocompleteMunicipio('XYZ123', 10);
+      const response = await client.autocompleteMunicipality('XYZ123', 10);
       const result = response.body;
 
       expect(response.statusCode).toBe(200);
