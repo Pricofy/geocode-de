@@ -13,6 +13,12 @@ import (
 // serviceLogger is the logger instance for the service
 var serviceLogger = logger.NewLogger("PostalCodeService")
 
+// Error messages constants to avoid duplication
+const (
+	errorMessageFailedToParseRequestBody = "Failed to parse request body"
+	errorMessageInvalidJSONInRequestBody = "Invalid JSON in request body"
+)
+
 // PostalCodeService provides business logic for Spanish postal code operations.
 // Coordinates between the handler layer and the provider layer.
 // Handles input validation, parsing, and error handling.
@@ -78,8 +84,8 @@ func (s *PostalCodeService) GeocodeByPostal(event domain.LambdaEvent) (domain.Ge
 func (s *PostalCodeService) parseGeocodingInput(event domain.LambdaEvent) (postalCode, municipality string, err error) {
 	var body domain.RequestBody
 	if err := json.Unmarshal([]byte(event.Body), &body); err != nil {
-		serviceLogger.Error("Failed to parse request body", err, nil)
-		return "", "", domain.NewValidationError("Invalid JSON in request body", "body")
+		serviceLogger.Error(errorMessageFailedToParseRequestBody, err, nil)
+		return "", "", domain.NewValidationError(errorMessageInvalidJSONInRequestBody, "body")
 	}
 
 	if body.PostalCode != nil {
@@ -121,7 +127,7 @@ func (s *PostalCodeService) tryGeocodeByPostalCode(postalCode, municipality stri
 	serviceLogger.Info("Geocoding successful by postal code", map[string]interface{}{
 		"postalCode":   postalCode,
 		"municipality": result.Municipality,
-		"province":    result.Province,
+		"province":     result.Province,
 	})
 
 	return result, nil
@@ -140,7 +146,7 @@ func (s *PostalCodeService) geocodeByMunicipality(municipality string) (domain.G
 	serviceLogger.Info("Geocoding successful by municipality", map[string]interface{}{
 		"municipality": municipality,
 		"postalCode":   result.PostalCode,
-		"province":    result.Province,
+		"province":     result.Province,
 	})
 
 	return result, nil
@@ -163,8 +169,8 @@ func (s *PostalCodeService) geocodeByMunicipality(municipality string) (domain.G
 func (s *PostalCodeService) ReverseGeocode(event domain.LambdaEvent) (domain.ReverseGeocodingResult, error) {
 	var body domain.RequestBody
 	if err := json.Unmarshal([]byte(event.Body), &body); err != nil {
-		serviceLogger.Error("Failed to parse request body", err, nil)
-		return domain.ReverseGeocodingResult{}, domain.NewValidationError("Invalid JSON in request body", "body")
+		serviceLogger.Error(errorMessageFailedToParseRequestBody, err, nil)
+		return domain.ReverseGeocodingResult{}, domain.NewValidationError(errorMessageInvalidJSONInRequestBody, "body")
 	}
 
 	if body.Lat == nil || body.Lon == nil {
@@ -204,7 +210,7 @@ func (s *PostalCodeService) ReverseGeocode(event domain.LambdaEvent) (domain.Rev
 		Success:    result.Success,
 		City:       result.Municipality,
 		PostalCode: result.PostalCode,
-		Province:  result.Province,
+		Province:   result.Province,
 		Country:    "España",
 		Coords:     result.Coords,
 		Distance:   distance,
@@ -360,8 +366,8 @@ func (s *PostalCodeService) AutocompleteMunicipality(event domain.LambdaEvent) (
 func (s *PostalCodeService) parseValidationInput(event domain.LambdaEvent, field string) (string, error) {
 	var body domain.RequestBody
 	if err := json.Unmarshal([]byte(event.Body), &body); err != nil {
-		serviceLogger.Error("Failed to parse request body", err, nil)
-		return "", domain.NewValidationError("Invalid JSON in request body", "body")
+		serviceLogger.Error(errorMessageFailedToParseRequestBody, err, nil)
+		return "", domain.NewValidationError(errorMessageInvalidJSONInRequestBody, "body")
 	}
 
 	var value string
@@ -386,8 +392,8 @@ func (s *PostalCodeService) parseValidationInput(event domain.LambdaEvent, field
 func (s *PostalCodeService) parseAutocompleteInput(event domain.LambdaEvent, isPostalCode bool) (string, int, error) {
 	var body domain.RequestBody
 	if err := json.Unmarshal([]byte(event.Body), &body); err != nil {
-		serviceLogger.Error("Failed to parse request body", err, nil)
-		return "", 0, domain.NewValidationError("Invalid JSON in request body", "body")
+		serviceLogger.Error(errorMessageFailedToParseRequestBody, err, nil)
+		return "", 0, domain.NewValidationError(errorMessageInvalidJSONInRequestBody, "body")
 	}
 
 	var value string
@@ -416,4 +422,3 @@ func (s *PostalCodeService) parseAutocompleteInput(event domain.LambdaEvent, isP
 
 	return value, limit, nil
 }
-

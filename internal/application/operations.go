@@ -12,6 +12,11 @@ import (
 // operationsLogger is the logger instance for the operations
 var operationsLogger = logger.NewLogger("Operations")
 
+// Log messages constants to avoid duplication
+const (
+	logMessageProcessingRequest = "Processing request"
+)
+
 // GeocodeByPostalOperation handles the geocode-by-postal operation.
 //
 // Processes requests to geocode Spanish postal codes or municipalities to coordinates.
@@ -25,7 +30,7 @@ var operationsLogger = logger.NewLogger("Operations")
 //   - LambdaResponse with status code 200 and geocoding result on success
 //   - LambdaResponse with status code 400/404/500 and error message on failure
 func GeocodeByPostalOperation(service *PostalCodeService, event domain.LambdaEvent) (domain.LambdaResponse, error) {
-	operationsLogger.Info("Processing request", nil)
+	operationsLogger.Info(logMessageProcessingRequest, nil)
 
 	result, err := service.GeocodeByPostal(event)
 	if err != nil {
@@ -35,7 +40,7 @@ func GeocodeByPostalOperation(service *PostalCodeService, event domain.LambdaEve
 	operationsLogger.Info("Geocoding successful", map[string]interface{}{
 		"postalCode":   result.PostalCode,
 		"municipality": result.Municipality,
-		"province":    result.Province,
+		"province":     result.Province,
 		"source":       result.Source,
 	})
 
@@ -59,7 +64,7 @@ func GeocodeByPostalOperation(service *PostalCodeService, event domain.LambdaEve
 //   - LambdaResponse with status code 200 and reverse geocoding result on success
 //   - LambdaResponse with status code 400/404/500 and error message on failure
 func ReverseGeocodeOperation(service *PostalCodeService, event domain.LambdaEvent) (domain.LambdaResponse, error) {
-	operationsLogger.Info("Processing request", nil)
+	operationsLogger.Info(logMessageProcessingRequest, nil)
 
 	result, err := service.ReverseGeocode(event)
 	if err != nil {
@@ -67,10 +72,10 @@ func ReverseGeocodeOperation(service *PostalCodeService, event domain.LambdaEven
 	}
 
 	operationsLogger.Info("Reverse geocoding successful", map[string]interface{}{
-		"postalCode": result.PostalCode,
-		"municipality":  result.City,
-		"province":  result.Province,
-		"distance":   result.Distance,
+		"postalCode":   result.PostalCode,
+		"municipality": result.City,
+		"province":     result.Province,
+		"distance":     result.Distance,
 	})
 
 	body, _ := json.Marshal(result)
@@ -92,7 +97,7 @@ func ReverseGeocodeOperation(service *PostalCodeService, event domain.LambdaEven
 //   - LambdaResponse with status code 200 and validation result on success
 //   - LambdaResponse with status code 400/500 and error message on failure
 func ValidatePostalOperation(service *PostalCodeService, event domain.LambdaEvent) (domain.LambdaResponse, error) {
-	operationsLogger.Info("Processing request", nil)
+	operationsLogger.Info(logMessageProcessingRequest, nil)
 
 	result, err := service.ValidatePostal(event)
 	if err != nil {
@@ -118,7 +123,7 @@ func ValidatePostalOperation(service *PostalCodeService, event domain.LambdaEven
 //   - LambdaResponse with status code 200 and validation result on success
 //   - LambdaResponse with status code 400/500 and error message on failure
 func ValidateMunicipalityOperation(service *PostalCodeService, event domain.LambdaEvent) (domain.LambdaResponse, error) {
-	operationsLogger.Info("Processing request", nil)
+	operationsLogger.Info(logMessageProcessingRequest, nil)
 
 	result, err := service.ValidateMunicipality(event)
 	if err != nil {
@@ -145,7 +150,7 @@ func ValidateMunicipalityOperation(service *PostalCodeService, event domain.Lamb
 //   - LambdaResponse with status code 200 and autocomplete results on success
 //   - LambdaResponse with status code 400/500 and error message on failure
 func AutocompletePostalOperation(service *PostalCodeService, event domain.LambdaEvent) (domain.LambdaResponse, error) {
-	operationsLogger.Info("Processing request", nil)
+	operationsLogger.Info(logMessageProcessingRequest, nil)
 
 	results, err := service.AutocompletePostal(event)
 	if err != nil {
@@ -177,7 +182,7 @@ func AutocompletePostalOperation(service *PostalCodeService, event domain.Lambda
 //   - LambdaResponse with status code 200 and autocomplete results on success
 //   - LambdaResponse with status code 400/500 and error message on failure
 func AutocompleteMunicipalityOperation(service *PostalCodeService, event domain.LambdaEvent) (domain.LambdaResponse, error) {
-	operationsLogger.Info("Processing request", nil)
+	operationsLogger.Info(logMessageProcessingRequest, nil)
 
 	results, err := service.AutocompleteMunicipality(event)
 	if err != nil {
@@ -205,7 +210,7 @@ func handleGeocodeError(err error, defaultMessage string) (domain.LambdaResponse
 		body, _ := json.Marshal(map[string]interface{}{
 			"success": false,
 			"error":   "Postal code or municipality not found",
-			"hint":     "Please provide a valid Spanish postal code (e.g., \"28001\") or municipality name (e.g., \"Madrid\")",
+			"hint":    "Please provide a valid Spanish postal code (e.g., \"28001\") or municipality name (e.g., \"Madrid\")",
 		})
 		return domain.LambdaResponse{
 			StatusCode: 404,
@@ -334,4 +339,3 @@ func handleInternalError(err error, defaultMessage string) (domain.LambdaRespons
 		Body:       string(body),
 	}, nil
 }
-

@@ -248,7 +248,7 @@ describe('Geocode ES E2E Tests', () => {
       console.log('🧪 Testing validate-municipio with valid municipality');
 
       const startTime = Date.now();
-      const response = await client.validateMunicipio('Madrid');
+      const response = await client.validateMunicipality('Madrid');
       const duration = Date.now() - startTime;
 
       const result = response.body;
@@ -265,7 +265,7 @@ describe('Geocode ES E2E Tests', () => {
       console.log('🧪 Testing validate-municipio with invalid municipality');
 
       const startTime = Date.now();
-      const response = await client.validateMunicipio('NonExistentCity');
+      const response = await client.validateMunicipality('NonExistentCity');
       const duration = Date.now() - startTime;
 
       const result = response.body;
@@ -365,6 +365,239 @@ describe('Geocode ES E2E Tests', () => {
       expect(result.results).toEqual([]);
 
       console.log(`   ✅ Correctly returned empty results`);
+    }, 30000);
+  });
+
+  // ============================================================================
+  // Edge Cases - Geocode by Postal
+  // ============================================================================
+
+  describe('Edge Cases - Geocode by Postal', () => {
+    test('should handle postal code with invalid format (less than 5 digits)', async () => {
+      console.log('🧪 Testing geocode-by-postal with invalid format (123)');
+
+      const response = await client.geocodeByPostal('123');
+
+      expect(response.statusCode).toBe(400);
+      expect(response.body.success).toBe(false);
+
+      console.log(`   ✅ Correctly rejected invalid format`);
+    }, 30000);
+
+    test('should prioritize postalCode when both postalCode and municipality provided', async () => {
+      console.log('🧪 Testing geocode-by-postal with both parameters');
+
+      const response = await client.geocodeByPostal('28001', 'Barcelona');
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.postalCode).toBe('28001');
+      expect(response.body.source).toBe('postal_code');
+      // Should return Madrid, not Barcelona
+      expect(response.body.municipio).toContain('Madrid');
+
+      console.log(`   ✅ Correctly prioritized postalCode over municipality`);
+    }, 30000);
+
+    test('should handle municipality with accents (Málaga)', async () => {
+      console.log('🧪 Testing geocode-by-postal with accented municipality');
+
+      const response = await client.geocodeByPostal(undefined, 'Málaga');
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.municipio).toContain('Málaga');
+
+      console.log(`   ✅ Successfully handled accented municipality`);
+    }, 30000);
+
+    test('should handle municipality with mixed case', async () => {
+      console.log('🧪 Testing geocode-by-postal with mixed case municipality');
+
+      const response = await client.geocodeByPostal(undefined, 'mAdRiD');
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.municipio).toBe('Madrid');
+
+      console.log(`   ✅ Successfully handled mixed case`);
+    }, 30000);
+  });
+
+  // ============================================================================
+  // Edge Cases - Reverse Geocode
+  // ============================================================================
+
+  describe('Edge Cases - Reverse Geocode', () => {
+    test('should handle coordinates in Canary Islands', async () => {
+      console.log('🧪 Testing reverse-geocode with Canary Islands coordinates');
+
+      // Las Palmas de Gran Canaria
+      const response = await client.reverseGeocode(28.1248, -15.4300);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.country).toBe('España');
+
+      console.log(`   ✅ Successfully handled Canary Islands coordinates`);
+      console.log(`   City: ${response.body.city}, Postal: ${response.body.postalCode}`);
+    }, 30000);
+
+    test('should handle coordinates in Balearic Islands', async () => {
+      console.log('🧪 Testing reverse-geocode with Balearic Islands coordinates');
+
+      // Palma de Mallorca
+      const response = await client.reverseGeocode(39.5696, 2.6502);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.country).toBe('España');
+
+      console.log(`   ✅ Successfully handled Balearic Islands coordinates`);
+      console.log(`   City: ${response.body.city}, Postal: ${response.body.postalCode}`);
+    }, 30000);
+
+    test('should handle coordinates outside Spain (should return error or closest)', async () => {
+      console.log('🧪 Testing reverse-geocode with coordinates outside Spain');
+
+      // Paris, France
+      const response = await client.reverseGeocode(48.8566, 2.3522);
+
+      // Should either return error or closest Spanish location
+      if (response.statusCode === 400) {
+        expect(response.body.success).toBe(false);
+        console.log(`   ✅ Correctly rejected coordinates outside Spain`);
+      } else {
+        expect(response.statusCode).toBe(200);
+        expect(response.body.country).toBe('España');
+        console.log(`   ✅ Returned closest Spanish location`);
+      }
+    }, 30000);
+  });
+
+  // ============================================================================
+  // Edge Cases - Autocomplete
+  // ============================================================================
+
+  describe('Edge Cases - Autocomplete', () => {
+    test('should handle limit 0 in autocomplete-postal', async () => {
+      console.log('🧪 Testing autocomplete-postal with limit 0');
+
+      const response = await client.autocompletePostal('280', 0);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.results).toEqual([]);
+
+      console.log(`   ✅ Correctly handled limit 0`);
+    }, 30000);
+
+    test('should handle empty prefix in autocomplete-postal', async () => {
+      console.log('🧪 Testing autocomplete-postal with empty prefix');
+
+      const response = await client.autocompletePostal('', 10);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.success).toBe(true);
+      // Should return empty or handle gracefully
+      expect(Array.isArray(response.body.results)).toBe(true);
+
+      console.log(`   ✅ Correctly handled empty prefix`);
+    }, 30000);
+
+    test('should handle empty query in autocomplete-municipality', async () => {
+      console.log('🧪 Testing autocomplete-municipality with empty query');
+
+      const response = await client.autocompleteMunicipality('', 10);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(Array.isArray(response.body.results)).toBe(true);
+
+      console.log(`   ✅ Correctly handled empty query`);
+    }, 30000);
+
+    test('should handle very large limit in autocomplete', async () => {
+      console.log('🧪 Testing autocomplete with very large limit');
+
+      const response = await client.autocompletePostal('28', 10000);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(Array.isArray(response.body.results)).toBe(true);
+      // Should respect maximum limit
+      expect(response.body.results.length).toBeLessThanOrEqual(100);
+
+      console.log(`   ✅ Correctly handled large limit (returned ${response.body.results.length} results)`);
+    }, 30000);
+  });
+
+  // ============================================================================
+  // Error Handling
+  // ============================================================================
+
+  describe('Error Handling', () => {
+    test('should handle missing required parameters in geocode-by-postal', async () => {
+      console.log('🧪 Testing geocode-by-postal without parameters');
+
+      const response = await client.geocodeByPostal();
+
+      expect(response.statusCode).toBe(404);
+      expect(response.body.success).toBe(false);
+
+      console.log(`   ✅ Correctly handled missing parameters`);
+    }, 30000);
+
+    test('should handle missing coordinates in reverse-geocode', async () => {
+      console.log('🧪 Testing reverse-geocode validation (would need direct Lambda call)');
+      // This would require testing invalid payload structure
+      // For now, we test with invalid coordinates which is covered above
+      console.log(`   ℹ️  Covered by invalid coordinates test`);
+    }, 30000);
+  });
+
+  // ============================================================================
+  // Integration Tests
+  // ============================================================================
+
+  describe('Integration Tests', () => {
+    test('should maintain consistency: geocode → reverse-geocode round-trip', async () => {
+      console.log('🧪 Testing geocode → reverse-geocode round-trip consistency');
+
+      // Step 1: Geocode a postal code
+      const geocodeResponse = await client.geocodeByPostal('28001');
+      expect(geocodeResponse.statusCode).toBe(200);
+      const { coords, postalCode: originalPostal } = geocodeResponse.body;
+
+      // Step 2: Reverse geocode the coordinates
+      const reverseResponse = await client.reverseGeocode(coords.lat, coords.lon);
+      expect(reverseResponse.statusCode).toBe(200);
+      const { postalCode: reversePostal, distance } = reverseResponse.body;
+
+      // Step 3: Verify consistency
+      // The reverse geocode should return the same or nearby postal code
+      expect(reversePostal).toBeDefined();
+      expect(distance).toBeLessThan(10); // Should be within 10km
+
+      console.log(`   ✅ Round-trip successful`);
+      console.log(`   Original: ${originalPostal}, Reverse: ${reversePostal}, Distance: ${distance}km`);
+    }, 30000);
+
+    test('should validate postal code that was geocoded', async () => {
+      console.log('🧪 Testing integration: geocode → validate');
+
+      // Step 1: Geocode a postal code
+      const geocodeResponse = await client.geocodeByPostal('28001');
+      expect(geocodeResponse.statusCode).toBe(200);
+      const { postalCode } = geocodeResponse.body;
+
+      // Step 2: Validate the same postal code
+      const validateResponse = await client.validatePostal(postalCode);
+      expect(validateResponse.statusCode).toBe(200);
+      expect(validateResponse.body.valid).toBe(true);
+      expect(validateResponse.body.value).toBe(postalCode);
+
+      console.log(`   ✅ Integration test successful`);
     }, 30000);
   });
 

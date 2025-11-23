@@ -119,20 +119,44 @@ jobs:
       # Step 7: Run Go Tests with Coverage
       # ========================================
       # Runs Go test suite via Makefile
+      # Generates coverage.out file for SonarCloud
       # continue-on-error: true → Allows SonarCloud to report failures
       - name: Run tests with coverage
         run: make test
         continue-on-error: true
 
-
+      # ========================================
+      # Step 7.1: Verify Coverage File
+      # ========================================
+      # Ensures coverage.out exists before SonarCloud scan
+      - name: Verify coverage file exists
+        if: always()
+        run: |
+          if [ -f coverage.out ]; then
+            echo "✅ Coverage file found: coverage.out"
+            echo "📊 Coverage file size: $(wc -l < coverage.out) lines"
+            echo "📊 First few lines:"
+            head -5 coverage.out
+          else
+            echo "❌ ERROR: coverage.out not found!"
+            echo "Current directory: $(pwd)"
+            echo "Files in current directory:"
+            ls -la | head -20
+            exit 1
+          fi
 
       # ========================================
       # Step 8: SonarCloud Quality Analysis
       # ========================================
       # Uploads results to SonarCloud dashboard
+      # Includes coverage report from coverage.out
       # if: always() → Runs even if previous steps failed
       - name: SonarCloud Scan
         if: always()
         uses: SonarSource/sonarcloud-github-action@v3.1.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.go.coverage.reportPaths=coverage.out
