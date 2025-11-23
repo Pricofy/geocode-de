@@ -43,6 +43,11 @@ on:
           - main
           - develop
 
+# Required permissions for accessing organization secrets
+permissions:
+  contents: read    # Required for checking out the repository
+  pull-requests: read  # Required for PR analysis in SonarCloud
+
 jobs:
   quality:
     name: Run Quality Checks
