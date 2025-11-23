@@ -6,6 +6,7 @@
 *.dylib
 *.test
 go.work
+pricofy-geocode-es
 
 # Build
 dist/
@@ -27,6 +28,7 @@ scripts/readme.txt
 # Tests
 coverage/
 coverage.out
+coverage*.out
 *.lcov
 
 # IDEs
