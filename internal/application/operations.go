@@ -158,6 +158,7 @@ func AutocompletePostalOperation(service *PostalCodeService, event domain.Lambda
 	}
 
 	response := map[string]interface{}{
+		"success": true,
 		"results": results,
 		"count":   len(results),
 	}
@@ -190,6 +191,7 @@ func AutocompleteMunicipalityOperation(service *PostalCodeService, event domain.
 	}
 
 	response := map[string]interface{}{
+		"success": true,
 		"results": results,
 		"count":   len(results),
 	}
