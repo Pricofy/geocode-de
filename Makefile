@@ -46,6 +46,20 @@ GOLINT = golangci-lint
 BINARY = pricofy-geocode-es
 ENV ?= dev
 
+# AWS Configuration (determined by ENV)
+# Account IDs
+AWS_ACCOUNT_ID_DEV = 948976367203
+AWS_ACCOUNT_ID_PROD = 380283541715
+
+# Calculate AWS_PROFILE and CDK_DEFAULT_ACCOUNT based on ENV
+ifeq ($(ENV),prod)
+  AWS_PROFILE = pricofy-prod
+  CDK_DEFAULT_ACCOUNT = $(AWS_ACCOUNT_ID_PROD)
+else
+  AWS_PROFILE = pricofy-dev
+  CDK_DEFAULT_ACCOUNT = $(AWS_ACCOUNT_ID_DEV)
+endif
+
 # Service configuration
 SERVICE_NAME = pricofy-geocode-es
 STACK_SERVICE = PricofyGeocodeEsStack
@@ -95,10 +109,25 @@ test-fast: ## Run tests without verbose output (faster)
 	@$(GOTEST) -coverprofile=coverage.out -covermode=atomic -coverpkg=./cmd/...,./internal/... ./... 2>&1 | grep -E "(PASS|FAIL|ok|coverage)" | grep -v "no test files" | grep -v "no statements"
 	@echo "📊 Coverage: $$(go tool cover -func=coverage.out | grep total: | awk '{print $$3}')"
 
+# Setup AWS environment configuration
+# Internal target: validates ENV and sets AWS_PROFILE/CDK_DEFAULT_ACCOUNT
+setup-aws-env:
+	@if [ -z "$(ENV)" ]; then \
+		echo "❌ ERROR: ENV is not set. Use: make <target> ENV=dev|prod"; \
+		exit 1; \
+	fi
+	@if [ "$(ENV)" != "dev" ] && [ "$(ENV)" != "prod" ]; then \
+		echo "❌ ERROR: ENV must be 'dev' or 'prod', got: $(ENV)"; \
+		exit 1; \
+	fi
+	@echo "🔧 AWS Configuration for $(ENV):"
+	@echo "   AWS_PROFILE: $(AWS_PROFILE)"
+	@echo "   CDK_DEFAULT_ACCOUNT: $(CDK_DEFAULT_ACCOUNT)"
+
 # Run E2E integration tests (requires deployed Lambda)
-test-e2e: ## Run E2E integration tests against deployed Lambda
-	@echo "🚀 Running E2E integration tests..."
-	@cd test/e2e && npm test
+test-e2e: setup-aws-env ## Run E2E integration tests against deployed Lambda (ENV=dev|prod)
+	@echo "🚀 Running E2E integration tests for $(ENV)..."
+	@cd test/e2e && AWS_PROFILE=$(AWS_PROFILE) ENVIRONMENT=$(ENV) npm test
 
 # Setup E2E test dependencies
 test-e2e-setup: ## Install E2E test dependencies
@@ -142,13 +171,13 @@ install: ## Install application and infrastructure dependencies
 	@echo "✅ Dependencies installed"
 
 # Verify deployment prerequisites
-verify: ## Verify deployment prerequisites (AWS config, CDK bootstrap)
+verify: setup-aws-env ## Verify deployment prerequisites (AWS config, CDK bootstrap) (ENV=dev|prod)
 	@echo "🔍 Verifying deployment prerequisites for $(ENV)..."
 	@echo "Checking AWS CLI configuration..."
-	@aws sts get-caller-identity > /dev/null || (echo "❌ AWS CLI not configured" && exit 1)
+	@AWS_PROFILE=$(AWS_PROFILE) aws sts get-caller-identity > /dev/null || (echo "❌ AWS CLI not configured" && exit 1)
 	@echo "✅ AWS CLI configured"
 	@echo "Checking CDK bootstrap..."
-	@aws cloudformation describe-stacks --stack-name CDKToolkit > /dev/null 2>&1 || (echo "❌ CDK not bootstrapped" && exit 1)
+	@AWS_PROFILE=$(AWS_PROFILE) aws cloudformation describe-stacks --stack-name CDKToolkit > /dev/null 2>&1 || (echo "❌ CDK not bootstrapped" && exit 1)
 	@echo "✅ CDK bootstrap complete"
 	@echo "✅ All prerequisites verified for $(ENV)"
 
@@ -164,15 +193,12 @@ deploy: clean deps build test ## Safe deployment (clean + test + deploy)
 	@$(MAKE) deploy-quick ENV=$(ENV)
 
 # Deploy Quick - Fast deployment (skip clean/test - use with caution)
-deploy-quick: ## Quick deploy (skips clean/test - use with caution)
+deploy-quick: setup-aws-env ## Quick deploy (skips clean/test - use with caution) (ENV=dev|prod)
 	@echo "⚡ Quick deployment to $(ENV) (skipping clean/test)..."
-	@if [ -z "$$CDK_DEFAULT_ACCOUNT" ]; then \
-		echo "⚠️  CDK_DEFAULT_ACCOUNT not set, CDK will use default AWS credentials"; \
-	fi
 	@echo "  → Installing CDK dependencies..."
 	@cd infrastructure && npm ci
 	@echo "  → Deploying CloudFormation stacks..."
-	@cd infrastructure && npx cdk deploy --require-approval never --context env=$(ENV)
+	@cd infrastructure && AWS_PROFILE=$(AWS_PROFILE) CDK_DEFAULT_ACCOUNT=$(CDK_DEFAULT_ACCOUNT) npx cdk deploy --require-approval never --context env=$(ENV)
 	@echo "✅ Deployment complete!"
 
 # Destroy - Destroy Environment
@@ -238,4 +264,4 @@ ci: clean install build test lint ## Run CI pipeline locally
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: all build build-local test test-fast test-e2e test-e2e-setup test-e2e-quick coverage-html lint clean deps install verify deploy deploy-quick destroy-dev destroy-prod test-geocode logs-geocode ci help
+.PHONY: all build build-local test test-fast setup-aws-env test-e2e test-e2e-setup test-e2e-quick coverage-html lint clean deps install verify deploy deploy-quick destroy-dev destroy-prod test-geocode logs-geocode ci help

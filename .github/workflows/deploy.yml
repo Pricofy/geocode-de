@@ -19,8 +19,11 @@
 # Secrets Required:
 #   - AWS_ACCOUNT_ID_DEV  → AWS account for dev environment
 #   - AWS_ACCOUNT_ID_PROD → AWS account for prod environment
-#   - AWS_ROLE_ARN_DEV    → IAM role ARN for dev deployment
-#   - AWS_ROLE_ARN_PROD   → IAM role ARN for prod deployment
+#
+# Note: Role ARN is automatically constructed using the generic role name:
+#   - arn:aws:iam::${ACCOUNT_ID}:role/GitHubActionsDeployRole
+# This role is created by pricofy-infra CicdStack and shared across all services.
+# Same name in both dev and prod accounts (different accounts = no naming conflict).
 #
 # ========================================
 
@@ -63,23 +66,62 @@ jobs:
       # ========================================
       # Step 2: Determine Target Environment
       # ========================================
+      # Uses the environment from push (develop → dev) or workflow_dispatch input
+      #
+      # Sets outputs:
+      #   - environment: Target environment (dev/prod)
+      #   - account_id: AWS account ID for target environment
+      #   - role_arn: IAM role ARN for deployment
       - name: Determine environment
         id: env
         run: |
+          set -e
+          
           if [ "${{ github.event_name }}" == "push" ]; then
-            echo "environment=dev" >> $GITHUB_OUTPUT
-            echo "account_id=${{ secrets.AWS_ACCOUNT_ID_DEV }}" >> $GITHUB_OUTPUT
-            echo "role_arn=${{ secrets.AWS_ROLE_ARN_DEV }}" >> $GITHUB_OUTPUT
+            ENVIRONMENT="dev"
+            echo "🔍 Auto-deploying to DEV (push to develop branch)"
           else
-            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
-            if [ "${{ github.event.inputs.environment }}" == "prod" ]; then
-              echo "account_id=${{ secrets.AWS_ACCOUNT_ID_PROD }}" >> $GITHUB_OUTPUT
-              echo "role_arn=${{ secrets.AWS_ROLE_ARN_PROD }}" >> $GITHUB_OUTPUT
-            else
-              echo "account_id=${{ secrets.AWS_ACCOUNT_ID_DEV }}" >> $GITHUB_OUTPUT
-              echo "role_arn=${{ secrets.AWS_ROLE_ARN_DEV }}" >> $GITHUB_OUTPUT
-            fi
+            ENVIRONMENT="${{ github.event.inputs.environment }}"
+            ENVIRONMENT="${ENVIRONMENT:-dev}"
+            echo "🔍 Manual deployment to: ${ENVIRONMENT}"
           fi
+          
+          echo "environment=${ENVIRONMENT}" >> $GITHUB_OUTPUT
+          
+          # Use generic deployment role created by pricofy-infra CicdStack
+          # Same role name in both dev and prod accounts (different accounts = no conflict)
+          # Role name: GitHubActionsDeployRole (defined in pricofy-infra/lib/stacks/cicd-stack.ts)
+          if [ "${ENVIRONMENT}" == "prod" ]; then
+            ACCOUNT_ID="${{ secrets.AWS_ACCOUNT_ID_PROD }}"
+            echo "📦 Using PROD credentials"
+          else
+            ACCOUNT_ID="${{ secrets.AWS_ACCOUNT_ID_DEV }}"
+            echo "📦 Using DEV credentials"
+          fi
+          
+          # Generic role name (same in both accounts, created by CicdStack)
+          ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/GitHubActionsDeployRole"
+          
+          # Validate that account ID secret is not empty
+          if [ -z "${ACCOUNT_ID}" ]; then
+            echo "❌ ERROR: AWS_ACCOUNT_ID_${ENVIRONMENT^^} secret is empty or not set"
+            exit 1
+          fi
+          
+          # Validate account ID format (12 digits)
+          if [[ ! "${ACCOUNT_ID}" =~ ^[0-9]{12}$ ]]; then
+            echo "❌ ERROR: Invalid account ID format: ${ACCOUNT_ID}"
+            echo "Expected format: 12-digit number"
+            exit 1
+          fi
+          
+          echo "✅ Account ID: ${ACCOUNT_ID}"
+          echo "✅ Role ARN: ${ROLE_ARN}"
+          
+          echo "account_id=${ACCOUNT_ID}" >> $GITHUB_OUTPUT
+          echo "role_arn=${ROLE_ARN}" >> $GITHUB_OUTPUT
+          
+          echo "✅ Environment configuration complete"
 
       # ========================================
       # Step 3: Setup Go Environment
@@ -113,11 +155,26 @@ jobs:
       # ========================================
       # Step 6: Configure AWS Credentials (OIDC)
       # ========================================
+      # Authenticates with AWS using OIDC (no long-lived keys)
+      # Assumes the IAM role specific to target environment
+      # Role permissions: CDK deployment, Lambda updates, CloudFormation
       - name: Configure AWS credentials
+        run: |
+          echo "🔐 Attempting to assume role: ${{ steps.env.outputs.role_arn }}"
+          if [ -z "${{ steps.env.outputs.role_arn }}" ]; then
+            echo "❌ ERROR: role_arn output is empty"
+            exit 1
+          fi
+        continue-on-error: false
+        
+      - name: Assume AWS role via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ steps.env.outputs.role_arn }}
           aws-region: eu-west-1
+          role-session-name: GitHubActions-GeocodeES-${{ steps.env.outputs.environment }}-${{ github.run_id }}
+          audience: sts.amazonaws.com
+          output-env-credentials: true
 
       # ========================================
       # Step 7: Verify Deployment Prerequisites (REQUIRED)

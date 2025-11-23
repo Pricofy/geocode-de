@@ -21,10 +21,13 @@
 #   - Configured geocoding service
 #
 # Secrets Required:
-#   - AWS_ACCOUNT_ID_DEV → AWS account ID for dev
-#   - AWS_ACCOUNT_ID_PROD → AWS account ID for prod
-#   - AWS_ROLE_ARN_DEV → IAM role ARN for dev
-#   - AWS_ROLE_ARN_PROD → IAM role ARN for prod
+#   - AWS_ACCOUNT_ID_DEV  → AWS account for dev environment
+#   - AWS_ACCOUNT_ID_PROD → AWS account for prod environment
+#
+# Note: Role ARN is automatically constructed using the generic role name:
+#   - arn:aws:iam::${ACCOUNT_ID}:role/GitHubActionsDeployRole
+# This role is created by pricofy-infra CicdStack and shared across all services.
+# Same name in both dev and prod accounts (different accounts = no naming conflict).
 #
 # Environment Variables:
 #   - AWS_REGION → AWS region (default: eu-west-1)
@@ -58,6 +61,11 @@ on:
   schedule:
     - cron: '0 2 * * *' # Daily at 2 AM UTC
 
+# Required permissions for OIDC authentication with AWS
+permissions:
+  id-token: write   # Required for requesting JWT from GitHub OIDC provider
+  contents: read    # Required for checking out the repository
+
 jobs:
   e2e-tests:
     name: Run E2E Integration Tests
@@ -70,50 +78,116 @@ jobs:
       # Step 1: Checkout Repository
       # ========================================
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # ========================================
       # Step 2: Determine Target Environment
       # ========================================
+      # Determines environment from workflow_dispatch input or workflow_run branch
+      # For workflow_run: develop branch → dev, main branch → prod
+      # For workflow_dispatch: uses user-selected environment
+      # For schedule: defaults to dev
+      #
+      # Sets outputs:
+      #   - environment: Target environment (dev/prod)
+      #   - account_id: AWS account ID for target environment
+      #   - role_arn: IAM role ARN for Lambda invocation
       - name: Determine environment
         id: env
         run: |
+          set -e
+          
+          # Determine environment based on trigger type
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
-            if [ "${{ github.event.inputs.environment }}" == "prod" ]; then
-              echo "account_id=${{ secrets.AWS_ACCOUNT_ID_PROD }}" >> $GITHUB_OUTPUT
-              echo "role_arn=${{ secrets.AWS_ROLE_ARN_PROD }}" >> $GITHUB_OUTPUT
+            # Manual trigger: use input
+            ENVIRONMENT="${{ github.event.inputs.environment }}"
+          elif [ "${{ github.event_name }}" == "workflow_run" ]; then
+            # Auto trigger after deploy: infer from branch
+            BRANCH="${{ github.event.workflow_run.head_branch }}"
+            if [ "${BRANCH}" == "main" ]; then
+              ENVIRONMENT="prod"
             else
-              echo "account_id=${{ secrets.AWS_ACCOUNT_ID_DEV }}" >> $GITHUB_OUTPUT
-              echo "role_arn=${{ secrets.AWS_ROLE_ARN_DEV }}" >> $GITHUB_OUTPUT
+              ENVIRONMENT="dev"
             fi
           else
-            # Default to dev for scheduled runs and workflow_run
-            echo "environment=dev" >> $GITHUB_OUTPUT
-            echo "account_id=${{ secrets.AWS_ACCOUNT_ID_DEV }}" >> $GITHUB_OUTPUT
-            echo "role_arn=${{ secrets.AWS_ROLE_ARN_DEV }}" >> $GITHUB_OUTPUT
+            # Schedule: default to dev
+            ENVIRONMENT="dev"
           fi
+          
+          ENVIRONMENT="${ENVIRONMENT:-dev}"
+          
+          echo "🔍 Determining environment: ${ENVIRONMENT}"
+          echo "Trigger: ${{ github.event_name }}"
+          
+          echo "environment=${ENVIRONMENT}" >> $GITHUB_OUTPUT
+          
+          # Use generic deployment role created by pricofy-infra CicdStack
+          # Same role name in both dev and prod accounts (different accounts = no conflict)
+          # Role name: GitHubActionsDeployRole (defined in pricofy-infra/lib/stacks/cicd-stack.ts)
+          if [ "${ENVIRONMENT}" == "prod" ]; then
+            ACCOUNT_ID="${{ secrets.AWS_ACCOUNT_ID_PROD }}"
+            echo "📦 Using PROD credentials"
+          else
+            ACCOUNT_ID="${{ secrets.AWS_ACCOUNT_ID_DEV }}"
+            echo "📦 Using DEV credentials"
+          fi
+          
+          # Generic role name (same in both accounts, created by CicdStack)
+          ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/GitHubActionsDeployRole"
+          
+          # Validate that account ID secret is not empty
+          if [ -z "${ACCOUNT_ID}" ]; then
+            echo "❌ ERROR: AWS_ACCOUNT_ID_${ENVIRONMENT^^} secret is empty or not set"
+            exit 1
+          fi
+          
+          # Validate account ID format (12 digits)
+          if [[ ! "${ACCOUNT_ID}" =~ ^[0-9]{12}$ ]]; then
+            echo "❌ ERROR: Invalid account ID format: ${ACCOUNT_ID}"
+            echo "Expected format: 12-digit number"
+            exit 1
+          fi
+          
+          echo "✅ Account ID: ${ACCOUNT_ID}"
+          echo "✅ Role ARN: ${ROLE_ARN}"
+          
+          echo "account_id=${ACCOUNT_ID}" >> $GITHUB_OUTPUT
+          echo "role_arn=${ROLE_ARN}" >> $GITHUB_OUTPUT
+          
+          echo "✅ Environment configuration complete"
 
       # ========================================
-      # Step 3: Configure AWS Credentials
+      # Step 3: Configure AWS Credentials (OIDC)
       # ========================================
-      # Uses OIDC for secure authentication
+      # Authenticates with AWS using OIDC (no long-lived keys)
+      # Assumes the IAM role specific to target environment
+      # Role permissions: Lambda invocation, CloudWatch logs
       - name: Configure AWS credentials
+        run: |
+          echo "🔐 Attempting to assume role: ${{ steps.env.outputs.role_arn }}"
+          if [ -z "${{ steps.env.outputs.role_arn }}" ]; then
+            echo "❌ ERROR: role_arn output is empty"
+            exit 1
+          fi
+        continue-on-error: false
+        
+      - name: Assume AWS role via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ steps.env.outputs.role_arn }}
           aws-region: eu-west-1
+          role-session-name: GitHubActions-GeocodeES-E2E-${{ steps.env.outputs.environment }}-${{ github.run_id }}
+          audience: sts.amazonaws.com
+          output-env-credentials: true
 
       # ========================================
       # Step 4: Setup Node.js Environment
       # ========================================
       # Required for Jest and AWS SDK
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: test/e2e/package-lock.json
 
       # ========================================
       # Step 5: Install E2E Test Dependencies
@@ -126,12 +200,13 @@ jobs:
       # Step 6: Run E2E Tests
       # ========================================
       # Uses Makefile to run tests with proper environment
+      # Passes ENV to Makefile which automatically sets AWS_PROFILE
       - name: Run E2E tests
         env:
           AWS_REGION: eu-west-1
           LAMBDA_FUNCTION_NAME: pricofy-geocode-es-${{ steps.env.outputs.environment }}
           TEST_TIMEOUT: 60000
-        run: make test-e2e
+        run: make test-e2e ENV=${{ steps.env.outputs.environment }}
 
       # ========================================
       # Step 7: Notify on Failure

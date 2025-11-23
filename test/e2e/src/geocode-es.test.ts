@@ -16,6 +16,13 @@
  */
 
 import { GeocodeESClient } from './client';
+import { getConfig, validateConfig } from './config';
+
+// Validate configuration before running tests
+validateConfig();
+
+// Get test configuration
+const config = getConfig();
 
 // Initialize client
 const client = new GeocodeESClient();
@@ -23,8 +30,10 @@ const client = new GeocodeESClient();
 describe('Geocode ES E2E Tests', () => {
   beforeAll(() => {
     console.log('🚀 Starting Geocode ES E2E Tests');
-    console.log(`📍 Testing Lambda: ${process.env.LAMBDA_FUNCTION_NAME || 'pricofy-geocode-es'}`);
-    console.log(`🌍 Region: ${process.env.AWS_REGION || 'eu-west-1'}\n`);
+    console.log(`🌍 Environment: ${config.environment}`);
+    console.log(`📍 Lambda Function: ${config.lambdaFunctionName} (testing by name, not ARN/ID)`);
+    console.log(`🌐 AWS Region: ${config.awsRegion}`);
+    console.log(`⏱️  Test Timeout: ${config.testTimeout}ms\n`);
   });
 
   afterAll(() => {

@@ -1,24 +1,93 @@
 /**
  * E2E Test Configuration
  * 
- * Loads configuration from environment variables with sensible defaults.
+ * Manages environment variables and configuration for end-to-end tests.
+ * All values have sensible defaults for CI/CD environments.
  */
 
+/**
+ * Test configuration interface
+ */
 export interface TestConfig {
+  /** AWS region where Lambda is deployed */
   awsRegion: string;
+  /** Lambda function name to test (always uses name, never ARN or ID) */
   lambdaFunctionName: string;
+  /** Environment (dev/prod) */
+  environment: string;
+  /** Test timeout in milliseconds */
   testTimeout: number;
 }
 
 /**
  * Get test configuration from environment variables
+ * 
+ * The Lambda function name is determined by environment:
+ * - dev: 'pricofy-geocode-es-dev' (or 'pricofy-geocode-es' if not specified)
+ * - prod: 'pricofy-geocode-es-prod'
+ * 
+ * We search by function name, not by ARN or ID, to ensure tests work after redeployments.
+ * 
+ * AWS credentials are determined by:
+ * - AWS_PROFILE environment variable (e.g., 'pricofy-dev' or 'pricofy-prod')
+ * - Or AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY if provided
+ * - Or default AWS credential chain
+ * 
+ * @returns Test configuration object
  */
 export function getConfig(): TestConfig {
+  const environment = process.env.ENVIRONMENT || process.env.ENV || 'dev';
+  
+  // Validate AWS_PROFILE matches environment (if both are set)
+  if (process.env.AWS_PROFILE && environment) {
+    const profile = process.env.AWS_PROFILE;
+    if (environment === 'dev' && !profile.includes('dev')) {
+      console.warn(`⚠️  Warning: ENVIRONMENT=${environment} but AWS_PROFILE=${profile} (expected pricofy-dev)`);
+    }
+    if (environment === 'prod' && !profile.includes('prod')) {
+      console.warn(`⚠️  Warning: ENVIRONMENT=${environment} but AWS_PROFILE=${profile} (expected pricofy-prod)`);
+    }
+  }
+  
+  // Determine Lambda function name based on environment
+  const defaultFunctionName = environment === 'prod' 
+    ? 'pricofy-geocode-es-prod' 
+    : 'pricofy-geocode-es-dev';
+  
   return {
     awsRegion: process.env.AWS_REGION || 'eu-west-1',
-    lambdaFunctionName: process.env.LAMBDA_FUNCTION_NAME || 'pricofy-geocode-es',
+    // Lambda function name: use explicit name or default based on environment
+    // We use the function name, not ARN or ID, so tests work after redeployments
+    lambdaFunctionName: process.env.LAMBDA_FUNCTION_NAME || defaultFunctionName,
+    environment,
     testTimeout: parseInt(process.env.TEST_TIMEOUT || '60000', 10),
   };
+}
+
+/**
+ * Validate test configuration
+ * 
+ * Ensures all required configuration is present and valid.
+ * Throws error if configuration is invalid.
+ */
+export function validateConfig(): void {
+  const config = getConfig();
+
+  if (!config.awsRegion) {
+    throw new Error('AWS_REGION is required');
+  }
+
+  if (!config.lambdaFunctionName) {
+    throw new Error('LAMBDA_FUNCTION_NAME is required');
+  }
+
+  if (!['dev', 'prod'].includes(config.environment)) {
+    throw new Error(`ENVIRONMENT must be 'dev' or 'prod', got: ${config.environment}`);
+  }
+
+  if (config.testTimeout < 1000) {
+    throw new Error('TEST_TIMEOUT must be at least 1000ms');
+  }
 }
 
 /**
