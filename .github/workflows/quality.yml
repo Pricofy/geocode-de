@@ -55,17 +55,35 @@ jobs:
 
     steps:
       # ========================================
-      # Step 1: Checkout Repository
+      # Step 1: Determine Target Branch
+      # ========================================
+      # For manual dispatch: uses the selected branch input
+      # For automatic triggers: uses the triggering branch
+      - name: Determine target branch
+        id: branch
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            BRANCH="${{ github.event.inputs.branch }}"
+            echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+            echo "Using branch from input: $BRANCH"
+          else
+            BRANCH="${{ github.ref_name }}"
+            echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+            echo "Using branch from trigger: $BRANCH"
+          fi
+
+      # ========================================
+      # Step 2: Checkout Repository
       # ========================================
       # Downloads the repository code to the runner
       # Uses v4 for latest features and performance
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch || github.ref }}
+          ref: ${{ steps.branch.outputs.branch }}
 
       # ========================================
-      # Step 2: Setup Go Environment
+      # Step 3: Setup Go Environment
       # ========================================
       # Installs Go 1.25 (required for building and testing)
       # cache: true → Caches Go modules for faster builds
@@ -76,14 +94,14 @@ jobs:
           cache: true
 
       # ========================================
-      # Step 3: Clean Previous Build Artifacts
+      # Step 4: Clean Previous Build Artifacts
       # ========================================
       # Ensures tests run against a fresh environment
       - name: Clean
         run: make clean
 
       # ========================================
-      # Step 4: Install Dependencies
+      # Step 5: Install Dependencies
       # ========================================
       # Installs both Go and Infrastructure dependencies
       # Uses 'make install' to ensure complete environment
@@ -91,14 +109,14 @@ jobs:
         run: make install
 
       # ========================================
-      # Step 5: Build Go Binary
+      # Step 6: Build Go Binary
       # ========================================
       # Compiles Go code to binary to verify buildability
       - name: Build
         run: make build
 
       # ========================================
-      # Step 6: Run Go Tests with Coverage
+      # Step 7: Run Go Tests with Coverage
       # ========================================
       # Runs Go test suite via Makefile
       # continue-on-error: true → Allows SonarCloud to report failures
@@ -109,7 +127,7 @@ jobs:
 
 
       # ========================================
-      # Step 7: SonarCloud Quality Analysis
+      # Step 8: SonarCloud Quality Analysis
       # ========================================
       # Uploads results to SonarCloud dashboard
       # if: always() → Runs even if previous steps failed
