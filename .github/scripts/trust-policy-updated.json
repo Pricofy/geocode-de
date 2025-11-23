@@ -1,0 +1,33 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::815539057310:oidc-provider/token.actions.githubusercontent.com"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+                },
+                "StringLike": {
+                    "token.actions.githubusercontent.com:sub": [
+                        "repo:cnebrera/pricofy-api:*",
+                        "repo:cnebrera/pricofy-scraper-wallapop:*",
+                        "repo:cnebrera/pricofy-scraper-milanuncios:*",
+                        "repo:cnebrera/pricofy-scrapers-aggregator:*",
+                        "repo:cnebrera/pricofy-pdf-service:*",
+                        "repo:cnebrera/pricofy-email-service:*",
+                        "repo:cnebrera/pricofy-frontend:*",
+                        "repo:cnebrera/pricofy-front-flutter:*",
+                        "repo:cnebrera/pricofy-infra:*",
+                        "repo:cnebrera/pricofy-orchestrator:*",
+                        "repo:cnebrera/pricofy-ai-service:*",
+                        "repo:Pricofy/pricofy-geocode-es:*"
+                    ]
+                }
+            }
+        }
+    ]
+}
