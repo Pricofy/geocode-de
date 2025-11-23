@@ -109,7 +109,7 @@ jobs:
 
 
       # ========================================
-      # Step 8: SonarCloud Quality Analysis
+      # Step 7: SonarCloud Quality Analysis
       # ========================================
       # Uploads results to SonarCloud dashboard
       # if: always() → Runs even if previous steps failed
