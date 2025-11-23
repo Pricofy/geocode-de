@@ -174,10 +174,20 @@ install: ## Install application and infrastructure dependencies
 verify: setup-aws-env ## Verify deployment prerequisites (AWS config, CDK bootstrap) (ENV=dev|prod)
 	@echo "🔍 Verifying deployment prerequisites for $(ENV)..."
 	@echo "Checking AWS CLI configuration..."
-	@AWS_PROFILE=$(AWS_PROFILE) aws sts get-caller-identity > /dev/null || (echo "❌ AWS CLI not configured" && exit 1)
+	@if [ -n "$$CI" ] || [ -n "$$GITHUB_ACTIONS" ]; then \
+		echo "   → Using CI environment (OIDC credentials)"; \
+		aws sts get-caller-identity > /dev/null || (echo "❌ AWS CLI not configured" && exit 1); \
+	else \
+		echo "   → Using local AWS profile: $(AWS_PROFILE)"; \
+		AWS_PROFILE=$(AWS_PROFILE) aws sts get-caller-identity > /dev/null || (echo "❌ AWS CLI not configured" && exit 1); \
+	fi
 	@echo "✅ AWS CLI configured"
 	@echo "Checking CDK bootstrap..."
-	@AWS_PROFILE=$(AWS_PROFILE) aws cloudformation describe-stacks --stack-name CDKToolkit > /dev/null 2>&1 || (echo "❌ CDK not bootstrapped" && exit 1)
+	@if [ -n "$$CI" ] || [ -n "$$GITHUB_ACTIONS" ]; then \
+		aws cloudformation describe-stacks --stack-name CDKToolkit > /dev/null 2>&1 || (echo "❌ CDK not bootstrapped" && exit 1); \
+	else \
+		AWS_PROFILE=$(AWS_PROFILE) aws cloudformation describe-stacks --stack-name CDKToolkit > /dev/null 2>&1 || (echo "❌ CDK not bootstrapped" && exit 1); \
+	fi
 	@echo "✅ CDK bootstrap complete"
 	@echo "✅ All prerequisites verified for $(ENV)"
 
@@ -198,7 +208,13 @@ deploy-quick: setup-aws-env ## Quick deploy (skips clean/test - use with caution
 	@echo "  → Installing CDK dependencies..."
 	@cd infrastructure && npm ci
 	@echo "  → Deploying CloudFormation stacks..."
-	@cd infrastructure && AWS_PROFILE=$(AWS_PROFILE) CDK_DEFAULT_ACCOUNT=$(CDK_DEFAULT_ACCOUNT) npx cdk deploy --require-approval never --context env=$(ENV)
+	@if [ -n "$$CI" ] || [ -n "$$GITHUB_ACTIONS" ]; then \
+		echo "   → Using CI environment (OIDC credentials)"; \
+		cd infrastructure && CDK_DEFAULT_ACCOUNT=$(CDK_DEFAULT_ACCOUNT) npx cdk deploy --require-approval never --context env=$(ENV); \
+	else \
+		echo "   → Using local AWS profile: $(AWS_PROFILE)"; \
+		cd infrastructure && AWS_PROFILE=$(AWS_PROFILE) CDK_DEFAULT_ACCOUNT=$(CDK_DEFAULT_ACCOUNT) npx cdk deploy --require-approval never --context env=$(ENV); \
+	fi
 	@echo "✅ Deployment complete!"
 
 # Destroy - Destroy Environment
