@@ -12,7 +12,8 @@ import { GeocodeEsStack } from '../lib/geocode-es-stack';
 const app = new cdk.App();
 
 // Get environment from context (defaults to 'dev')
-const environment = app.node.tryGetContext('environment') || 'dev';
+// Support both 'env' and 'environment' for backwards compatibility
+const environment = app.node.tryGetContext('env') || app.node.tryGetContext('environment') || 'dev';
 
 // Validate environment
 if (!['dev', 'prod'].includes(environment)) {
