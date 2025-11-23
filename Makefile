@@ -127,7 +127,13 @@ setup-aws-env:
 # Run E2E integration tests (requires deployed Lambda)
 test-e2e: setup-aws-env ## Run E2E integration tests against deployed Lambda (ENV=dev|prod)
 	@echo "🚀 Running E2E integration tests for $(ENV)..."
-	@cd test/e2e && AWS_PROFILE=$(AWS_PROFILE) ENVIRONMENT=$(ENV) npm test
+	@if [ -n "$$CI" ] || [ -n "$$GITHUB_ACTIONS" ]; then \
+		echo "   → Using CI environment (OIDC credentials from env vars)"; \
+		cd test/e2e && ENVIRONMENT=$(ENV) npm test; \
+	else \
+		echo "   → Using local AWS profile: $(AWS_PROFILE)"; \
+		cd test/e2e && AWS_PROFILE=$(AWS_PROFILE) ENVIRONMENT=$(ENV) npm test; \
+	fi
 
 # Setup E2E test dependencies
 test-e2e-setup: ## Install E2E test dependencies
