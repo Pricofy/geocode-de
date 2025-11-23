@@ -20,7 +20,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@aws-sdk/client-lambda": "^3.651.1"
+    "@aws-sdk/client-lambda": "^3.938.0"
   },
   "jest": {
     "preset": "ts-jest",
@@ -38,4 +38,3 @@
     }
   }
 }
-
