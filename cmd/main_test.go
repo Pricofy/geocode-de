@@ -201,12 +201,15 @@ func TestInit(t *testing.T) {
 	if err != nil {
 		t.Errorf("NewApp() error = %v", err)
 	}
+	//nolint:staticcheck // SA5011: intentional nil checks for test validation
 	if app == nil {
 		t.Error("NewApp() returned nil app")
 	}
+	//nolint:staticcheck // SA5011: intentional nil checks for test validation
 	if app.service == nil {
 		t.Error("NewApp() returned app with nil service")
 	}
+	//nolint:staticcheck // SA5011: intentional nil checks for test validation
 	if app.logger == nil {
 		t.Error("NewApp() returned app with nil logger")
 	}

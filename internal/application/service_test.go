@@ -1,3 +1,4 @@
+//nolint:dupl // test code duplication is acceptable for clarity
 package application
 
 import (
@@ -581,6 +582,7 @@ func TestReverseGeocodeEdgeCases(t *testing.T) {
 	})
 }
 
+//nolint:gocognit // comprehensive test function with many test cases
 func TestPostalCodeService_InputParsing(t *testing.T) {
 	service := NewPostalCodeService()
 

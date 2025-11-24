@@ -1,3 +1,4 @@
+// Package provider contains data providers for postal code information.
 package provider
 
 import (
@@ -111,7 +112,7 @@ func (p *PostalCodeProvider) buildIndexes(codes map[string]domain.PostalData) {
 // Returns:
 //   - Distance in kilometers between the two points
 func (p *PostalCodeProvider) calculateDistance(lat1, lon1, lat2, lon2 float64) float64 {
-	const R = domain.EARTH_RADIUS_KM // Earth radius in kilometers
+	const R = domain.EarthRadiusKm // Earth radius in kilometers
 
 	dLat := (lat2 - lat1) * (math.Pi / 180)
 	dLon := (lon2 - lon1) * (math.Pi / 180)

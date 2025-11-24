@@ -369,7 +369,7 @@ func TestErrorHandlers(t *testing.T) {
 			t.Errorf("Expected status code 400, got %d", response.StatusCode)
 		}
 		var result map[string]interface{}
-		json.Unmarshal([]byte(response.Body), &result)
+		_ = json.Unmarshal([]byte(response.Body), &result)
 		if _, ok := result["results"]; !ok {
 			t.Error("Expected results field in response")
 		}
@@ -382,7 +382,7 @@ func TestErrorHandlers(t *testing.T) {
 			t.Errorf("Expected status code 400, got %d", response.StatusCode)
 		}
 		var result map[string]interface{}
-		json.Unmarshal([]byte(response.Body), &result)
+		_ = json.Unmarshal([]byte(response.Body), &result)
 		if _, ok := result["valid"]; !ok {
 			t.Error("Expected valid field in response")
 		}
@@ -424,7 +424,7 @@ func TestHandleInternalError(t *testing.T) {
 			t.Errorf("Expected status code 500, got %d", response.StatusCode)
 		}
 		var result map[string]interface{}
-		json.Unmarshal([]byte(response.Body), &result)
+		_ = json.Unmarshal([]byte(response.Body), &result)
 		if _, ok := result["details"]; !ok {
 			t.Error("Expected details field in dev environment")
 		}
@@ -438,7 +438,7 @@ func TestHandleInternalError(t *testing.T) {
 			t.Errorf("Expected status code 500, got %d", response.StatusCode)
 		}
 		var result map[string]interface{}
-		json.Unmarshal([]byte(response.Body), &result)
+		_ = json.Unmarshal([]byte(response.Body), &result)
 		if _, ok := result["details"]; ok {
 			t.Error("Expected no details field in production environment")
 		}
@@ -475,7 +475,7 @@ func TestHandleValidationErrorWithGenericErrorForAutocomplete(t *testing.T) {
 			t.Errorf("Expected status code 400, got %d", response.StatusCode)
 		}
 		var result map[string]interface{}
-		json.Unmarshal([]byte(response.Body), &result)
+		_ = json.Unmarshal([]byte(response.Body), &result)
 		if _, ok := result["results"]; !ok {
 			t.Error("Expected results field for autocomplete error")
 		}
@@ -526,7 +526,7 @@ func TestHandleValidationErrorDefaultCaseForAutocomplete(t *testing.T) {
 			t.Errorf("Expected status code 500, got %d", response.StatusCode)
 		}
 		var result map[string]interface{}
-		json.Unmarshal([]byte(response.Body), &result)
+		_ = json.Unmarshal([]byte(response.Body), &result)
 		if _, ok := result["results"]; !ok {
 			t.Error("Expected results field for autocomplete error")
 		}
@@ -543,7 +543,7 @@ func TestHandleValidationErrorDefaultCaseForAutocomplete(t *testing.T) {
 			t.Errorf("Expected status code 500, got %d", response.StatusCode)
 		}
 		var result map[string]interface{}
-		json.Unmarshal([]byte(response.Body), &result)
+		_ = json.Unmarshal([]byte(response.Body), &result)
 		if _, ok := result["details"]; ok {
 			t.Error("Expected no details field in production environment")
 		}
@@ -556,7 +556,7 @@ func TestHandleValidationErrorDefaultCaseForAutocomplete(t *testing.T) {
 			t.Errorf("Expected status code 500, got %d", response.StatusCode)
 		}
 		var result map[string]interface{}
-		json.Unmarshal([]byte(response.Body), &result)
+		_ = json.Unmarshal([]byte(response.Body), &result)
 		if _, ok := result["success"]; !ok {
 			t.Error("Expected success field for validate error")
 		}

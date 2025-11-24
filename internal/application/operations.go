@@ -1,3 +1,4 @@
+// Package application contains business logic and use cases for the geocoding service.
 package application
 
 import (
@@ -323,7 +324,7 @@ func contains(s, substr string) bool {
 }
 
 // handleInternalError handles internal server errors.
-func handleInternalError(err error, defaultMessage string) (domain.LambdaResponse, error) {
+func handleInternalError(err error, _ string) (domain.LambdaResponse, error) {
 	isDev := os.Getenv("ENVIRONMENT") == "dev"
 
 	responseBody := map[string]interface{}{

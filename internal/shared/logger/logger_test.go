@@ -19,7 +19,7 @@ func TestNewLogger(t *testing.T) {
 }
 
 // TestLogger_Info tests Info logging.
-func TestLogger_Info(t *testing.T) {
+func TestLogger_Info(_ *testing.T) {
 	logger := NewLogger("TestComponent")
 
 	// Should not panic
@@ -32,7 +32,7 @@ func TestLogger_Info(t *testing.T) {
 }
 
 // TestLogger_Warn tests Warn logging.
-func TestLogger_Warn(t *testing.T) {
+func TestLogger_Warn(_ *testing.T) {
 	logger := NewLogger("TestComponent")
 
 	// Should not panic
@@ -42,7 +42,7 @@ func TestLogger_Warn(t *testing.T) {
 }
 
 // TestLogger_Error tests Error logging.
-func TestLogger_Error(t *testing.T) {
+func TestLogger_Error(_ *testing.T) {
 	logger := NewLogger("TestComponent")
 
 	// Should not panic
@@ -55,7 +55,7 @@ func TestLogger_Error(t *testing.T) {
 }
 
 // TestLogger_Debug tests Debug logging.
-func TestLogger_Debug(t *testing.T) {
+func TestLogger_Debug(_ *testing.T) {
 	logger := NewLogger("TestComponent")
 
 	// Should not panic

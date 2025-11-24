@@ -1,3 +1,4 @@
+//nolint:dupl // test code duplication is acceptable for clarity
 package handler
 
 import (

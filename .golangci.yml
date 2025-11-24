@@ -1,0 +1,139 @@
+# ========================================
+# golangci-lint Configuration
+# ========================================
+# Purpose: Configure static code analysis for Go codebase
+# Documentation: https://golangci-lint.run/usage/configuration/
+
+# Configuration version (required for golangci-lint v2.x)
+version: 2
+
+# Run configuration
+run:
+  # Timeout for the entire linting process
+  timeout: 5m
+  
+  # Include test files in linting
+  tests: true
+  
+  # Skip directories that don't contain Go code
+  skip-dirs:
+    - infrastructure
+    - test/e2e
+  
+  # Skip generated files and templates
+  skip-files:
+    - ".*\\.pb\\.go$"
+    - ".*\\.gen\\.go$"
+    - ".*\\.template\\.go$"
+    - "infrastructure/.*"
+
+# Linters to enable
+linters:
+  enable:
+    # Error handling
+    - errcheck          # Check for unchecked errors
+    
+    # Security
+    - gosec             # Security vulnerability detection
+    
+    # Standard Go tools
+    - govet             # Go compiler's vet tool
+    - staticcheck       # Advanced static analysis
+    
+    # Code quality
+    - unused            # Detect unused code
+    - ineffassign       # Detect ineffectual assignments
+    - gocritic          # Most opinionated Go code linter
+    - revive            # Fast, configurable, extensible linter (replaces golint)
+    
+    # Code style
+    - misspell          # Detect common misspellings
+    
+    # Complexity and duplication
+    - gocyclo           # Detect cyclomatic complexity
+    - dupl              # Detect code duplication
+    - gocognit          # Detect cognitive complexity
+    
+    # Other useful checks
+    - unparam           # Detect unused function parameters
+    - goconst           # Detect repeated strings that could be constants
+
+# Linter-specific settings
+linters-settings:
+  errcheck:
+    # Check type assertions
+    check-type-assertions: true
+    # Check blank identifier usage
+    check-blank: true
+  
+  gosec:
+    # Minimum severity level to report
+    severity: medium
+    # Minimum confidence level to report
+    confidence: medium
+    # Exclude specific rules (G104 is handled by errcheck)
+    excludes:
+      - G104 # Errors unhandled (handled by errcheck)
+  
+  govet:
+    # Check for variable shadowing
+    check-shadowing: true
+  
+  gocritic:
+    # Enable specific tag groups
+    enabled-tags:
+      - diagnostic    # Diagnostic checks
+      - experimental  # Experimental checks
+      - opinionated   # Opinionated style checks
+      - performance   # Performance-related checks
+      - style         # Style-related checks
+  
+  revive:
+    # Custom rules configuration
+    rules:
+      # Warn about exported functions/types without documentation
+      - name: exported
+        severity: warning
+      # Error on functions that return errors but don't document them
+      - name: error-return
+        severity: error
+  
+  gocyclo:
+    # Minimum cyclomatic complexity to report
+    min-complexity: 15
+  
+  dupl:
+    # Minimum number of tokens to consider code duplicated
+    threshold: 100
+  
+  gocognit:
+    # Minimum cognitive complexity to report
+    min-complexity: 15
+
+# Issue configuration
+issues:
+  # Exclude rules for specific paths
+  exclude-rules:
+    # Be less strict on test files
+    - path: _test\.go
+      linters:
+        - gosec      # Security checks can be noisy in tests
+        - errcheck   # Error handling in tests is often different
+        - dupl       # Code duplication is acceptable in tests
+        - gocognit   # High complexity is acceptable in comprehensive tests
+        - staticcheck # Nil pointer checks can be overly strict in tests
+        - unparam    # Unused parameters are common in test helpers
+    # Exclude infrastructure directory completely
+    - path: infrastructure/
+      linters:
+        - all
+    # Exclude unparam for NewApp function (error return is for future extensibility)
+    - text: "NewApp - result 1"
+      linters:
+        - unparam
+  
+  # Maximum issues per linter (0 = unlimited)
+  max-issues-per-linter: 0
+  
+  # Maximum same issues (0 = unlimited)
+  max-same-issues: 0

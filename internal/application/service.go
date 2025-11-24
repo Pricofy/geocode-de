@@ -34,13 +34,13 @@ func NewPostalCodeService() *PostalCodeService {
 }
 
 // postalCodeRegex is the compiled regex for validating Spanish postal codes (5 digits).
-var postalCodeRegex = regexp.MustCompile(domain.POSTAL_CODE_REGEX_PATTERN)
+var postalCodeRegex = regexp.MustCompile(domain.PostalCodeRegexPattern)
 
 // validateCoordinates validates that coordinates are within valid ranges.
 func (s *PostalCodeService) validateCoordinates(lat, lon float64) error {
 	if math.IsNaN(lat) || math.IsNaN(lon) ||
-		lat < domain.MIN_LATITUDE || lat > domain.MAX_LATITUDE ||
-		lon < domain.MIN_LONGITUDE || lon > domain.MAX_LONGITUDE {
+		lat < domain.MinLatitude || lat > domain.MaxLatitude ||
+		lon < domain.MinLongitude || lon > domain.MaxLongitude {
 		return domain.NewInvalidCoordinatesError("Invalid coordinates", lat, lon)
 	}
 	return nil
@@ -409,14 +409,14 @@ func (s *PostalCodeService) parseAutocompleteInput(event domain.LambdaEvent, isP
 		value = *body.Query
 	}
 
-	limit := domain.DEFAULT_AUTOCOMPLETE_LIMIT
+	limit := domain.DefaultAutocompleteLimit
 	if body.Limit != nil {
 		limit = *body.Limit
 		if limit < 1 {
 			return "", 0, domain.NewValidationError("limit must be a positive number", "limit")
 		}
-		if limit > domain.MAX_AUTOCOMPLETE_LIMIT {
-			limit = domain.MAX_AUTOCOMPLETE_LIMIT
+		if limit > domain.MaxAutocompleteLimit {
+			limit = domain.MaxAutocompleteLimit
 		}
 	}
 

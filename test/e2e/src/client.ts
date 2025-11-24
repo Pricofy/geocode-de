@@ -70,9 +70,12 @@ export class GeocodeESClient {
     const response = await this.client.send(command);
     const payload = JSON.parse(new TextDecoder().decode(response.Payload));
 
+    // Some error responses may not include a body (e.g., 404). Guard against undefined to avoid JSON.parse crashes.
+    const body = typeof payload.body === 'string' ? JSON.parse(payload.body) : {};
+
     return {
       statusCode: payload.statusCode,
-      body: JSON.parse(payload.body),
+      body,
     };
   }
 

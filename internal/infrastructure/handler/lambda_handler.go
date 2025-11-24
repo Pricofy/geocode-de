@@ -1,3 +1,4 @@
+// Package handler contains AWS Lambda handler implementations.
 package handler
 
 import (
@@ -25,7 +26,7 @@ var handlerLogger = logger.NewLogger("LambdaHandler")
 // Handles both event formats:
 // 1. Direct Lambda invocation: { "operation": "...", "postalCode": "..." }
 // 2. API Gateway format: { "body": "{\"operation\":\"...\"}" }
-func Handler(ctx context.Context, event interface{}) (domain.LambdaResponse, error) {
+func Handler(_ context.Context, event interface{}) (domain.LambdaResponse, error) {
 	handlerLogger.Info("Processing request", nil)
 
 	// Convert event to JSON bytes for parsing

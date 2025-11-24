@@ -21,8 +21,8 @@ func (e *LocationError) Error() string {
 // is not found in the database.
 type PostalCodeNotFoundError struct {
 	LocationError
-	PostalCode string
-	Municipality  string
+	PostalCode   string
+	Municipality string
 }
 
 // NewPostalCodeNotFoundError creates a new PostalCodeNotFoundError.
@@ -31,11 +31,12 @@ type PostalCodeNotFoundError struct {
 // Otherwise, uses a generic message.
 func NewPostalCodeNotFoundError(postalCode, municipality string) *PostalCodeNotFoundError {
 	var message string
-	if postalCode != "" {
+	switch {
+	case postalCode != "":
 		message = fmt.Sprintf("Postal code not found: %s", postalCode)
-	} else if municipality != "" {
+	case municipality != "":
 		message = fmt.Sprintf("Municipality not found: %s", municipality)
-	} else {
+	default:
 		message = "Postal code or municipality not found"
 	}
 
@@ -44,8 +45,8 @@ func NewPostalCodeNotFoundError(postalCode, municipality string) *PostalCodeNotF
 			Message:   message,
 			Timestamp: time.Now(),
 		},
-		PostalCode: postalCode,
-		Municipality:  municipality,
+		PostalCode:   postalCode,
+		Municipality: municipality,
 	}
 }
 
@@ -86,4 +87,3 @@ func NewValidationError(message, field string) *ValidationError {
 		Field: field,
 	}
 }
-

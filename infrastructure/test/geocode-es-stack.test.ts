@@ -17,9 +17,14 @@ describe('Geocode ES Stack', () => {
     const path = require('path');
     const distDir = path.join(__dirname, '../../dist');
     fs.mkdirSync(distDir, { recursive: true });
-    // Create dummy bootstrap binary (Go Lambda entry point)
-    fs.writeFileSync(path.join(distDir, 'bootstrap'), '#!/bin/sh\necho "dummy"');
     
+    // Only create dummy bootstrap if it doesn't exist (don't overwrite real binary)
+    const bootstrapPath = path.join(distDir, 'bootstrap');
+    if (!fs.existsSync(bootstrapPath)) {
+      // Create dummy bootstrap binary (Go Lambda entry point)
+      fs.writeFileSync(bootstrapPath, '#!/bin/sh\necho "dummy"');
+    }
+
     app = new cdk.App();
     stack = new GeocodeEsStack(app, 'TestStack', {
       env: { account: 'test-account', region: 'eu-west-1' },
@@ -35,14 +40,14 @@ describe('Geocode ES Stack', () => {
 
   it('should create Lambda with proper naming', () => {
     template.hasResourceProperties('AWS::Lambda::Function', {
-      FunctionName: Match.stringLikeRegexp('pricofy-geocode-es-.*'),
+      FunctionName: 'pricofy-geocode-es',
     });
   });
 
   it('should configure Lambda with appropriate memory', () => {
-    // 256MB is sufficient for static postal code operations
+    // 128MB is sufficient for Go Lambda (extremely efficient)
     template.hasResourceProperties('AWS::Lambda::Function', {
-      MemorySize: 256,
+      MemorySize: 128,
     });
   });
 
@@ -55,13 +60,13 @@ describe('Geocode ES Stack', () => {
 
   it('should configure Lambda with proper runtime', () => {
     template.hasResourceProperties('AWS::Lambda::Function', {
-      Runtime: 'nodejs20.x',
+      Runtime: 'provided.al2023',
     });
   });
 
   it('should configure Lambda with handler', () => {
     template.hasResourceProperties('AWS::Lambda::Function', {
-      Handler: 'handlers/geocode.handler',
+      Handler: 'bootstrap',
     });
   });
 
@@ -70,7 +75,6 @@ describe('Geocode ES Stack', () => {
       Environment: {
         Variables: {
           ENVIRONMENT: 'dev',
-          NODE_ENV: 'production',
         },
       },
     });
