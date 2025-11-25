@@ -25,7 +25,6 @@
 #   destroy-prod → Destroy prod environment
 #   test-geocode → Test deployed Lambda function
 #   logs-geocode → View Lambda CloudWatch logs
-#   ci           → Run full CI pipeline locally
 #   help         → Show this help message
 #
 # Usage:
@@ -221,20 +220,11 @@ install: ## Install application and infrastructure dependencies
 verify: setup-aws-env ## Verify deployment prerequisites (AWS config, CDK bootstrap) (ENV=dev|prod)
 	@echo "🔍 Verifying deployment prerequisites for $(ENV)..."
 	@echo "Checking AWS CLI configuration..."
-	@if [ -n "$$CI" ] || [ -n "$$GITHUB_ACTIONS" ]; then \
-		echo "   → Using CI environment (OIDC credentials)"; \
-		aws sts get-caller-identity > /dev/null || (echo "❌ AWS CLI not configured" && exit 1); \
-	else \
-		echo "   → Using local AWS profile: $(AWS_PROFILE)"; \
-		AWS_PROFILE=$(AWS_PROFILE) aws sts get-caller-identity > /dev/null || (echo "❌ AWS CLI not configured" && exit 1); \
-	fi
+	@echo "   → Using local AWS profile: $(AWS_PROFILE)"
+	@AWS_PROFILE=$(AWS_PROFILE) aws sts get-caller-identity > /dev/null || (echo "❌ AWS CLI not configured" && exit 1)
 	@echo "✅ AWS CLI configured"
 	@echo "Checking CDK bootstrap..."
-	@if [ -n "$$CI" ] || [ -n "$$GITHUB_ACTIONS" ]; then \
-		aws cloudformation describe-stacks --stack-name CDKToolkit > /dev/null 2>&1 || (echo "❌ CDK not bootstrapped" && exit 1); \
-	else \
-		AWS_PROFILE=$(AWS_PROFILE) aws cloudformation describe-stacks --stack-name CDKToolkit > /dev/null 2>&1 || (echo "❌ CDK not bootstrapped" && exit 1); \
-	fi
+	@AWS_PROFILE=$(AWS_PROFILE) aws cloudformation describe-stacks --stack-name CDKToolkit > /dev/null 2>&1 || (echo "❌ CDK not bootstrapped" && exit 1)
 	@echo "✅ CDK bootstrap complete"
 	@echo "✅ All prerequisites verified for $(ENV)"
 
@@ -271,13 +261,8 @@ deploy-quick: setup-aws-env ## Quick deploy (skips clean/test - use with caution
 	@echo "  → Installing CDK dependencies..."
 	@cd infrastructure && npm ci
 	@echo "  → Deploying CloudFormation stacks..."
-	@if [ -n "$$CI" ] || [ -n "$$GITHUB_ACTIONS" ]; then \
-		echo "   → Using CI environment (OIDC credentials)"; \
-		cd infrastructure && CDK_DEFAULT_ACCOUNT=$(CDK_DEFAULT_ACCOUNT) npx cdk deploy --require-approval never --force --context env=$(ENV); \
-	else \
-		echo "   → Using local AWS profile: $(AWS_PROFILE)"; \
-		cd infrastructure && AWS_PROFILE=$(AWS_PROFILE) CDK_DEFAULT_ACCOUNT=$(CDK_DEFAULT_ACCOUNT) npx cdk deploy --require-approval never --force --context env=$(ENV); \
-	fi
+	@echo "   → Using local AWS profile: $(AWS_PROFILE)"
+	@cd infrastructure && AWS_PROFILE=$(AWS_PROFILE) CDK_DEFAULT_ACCOUNT=$(CDK_DEFAULT_ACCOUNT) npx cdk deploy --require-approval never --force --context env=$(ENV)
 	@echo "✅ Deployment complete!"
 
 # Destroy - Destroy Environment
@@ -334,10 +319,6 @@ test-geocode: ## Test geocode Lambda (ENV=dev)
 logs-geocode: ## View geocode Lambda logs (ENV=dev)
 	@echo "📊 Viewing geocode logs ($(ENV))..."
 	aws logs tail /aws/lambda/$(LAMBDA_GEOCODE) --follow
-
-# CI/CD - Continuous Integration
-ci: clean install build test lint ## Run CI pipeline locally
-	@echo "✅ CI pipeline complete"
 
 # Help target
 help: ## Show this help message
