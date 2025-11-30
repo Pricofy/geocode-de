@@ -1,4 +1,4 @@
-module github.com/pricofy/geocode-es
+module github.com/pricofy/geocode-de
 
 go 1.24.0
 
