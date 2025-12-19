@@ -422,3 +422,26 @@ func (s *PostalCodeService) parseAutocompleteInput(event domain.LambdaEvent, isP
 
 	return value, limit, nil
 }
+
+// GeocodeByMunicipalitiesBatch geocodes multiple municipalities in a single batch operation.
+func (s *PostalCodeService) GeocodeByMunicipalitiesBatch(municipalities []string) map[string]*domain.BatchGeocodingResult {
+	serviceLogger.Debug("Batch geocoding municipalities", map[string]interface{}{
+		"count": len(municipalities),
+	})
+
+	results := s.provider.GeocodeByMunicipalitiesBatch(municipalities)
+
+	foundCount := 0
+	for _, result := range results {
+		if result != nil && result.Found {
+			foundCount++
+		}
+	}
+
+	serviceLogger.Info("Batch geocoding completed", map[string]interface{}{
+		"requested": len(municipalities),
+		"found":     foundCount,
+	})
+
+	return results
+}

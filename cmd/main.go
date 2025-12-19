@@ -118,6 +118,8 @@ func (a *App) HandleRequest(ctx context.Context, event domain.LambdaEvent) (doma
 		return a.handleAutocompletePostal(ctx, event)
 	case "autocomplete-municipality":
 		return a.handleAutocompleteMunicipality(ctx, event)
+	case "geocode-municipalities-batch":
+		return a.handleGeocodeMunicipalitiesBatch(ctx, event)
 	default:
 		a.logger.Warn(fmt.Sprintf("Unknown operation requested: %s", operation), map[string]interface{}{
 			"operation": operation,
@@ -285,6 +287,60 @@ func (a *App) handleAutocompleteMunicipality(_ context.Context, event domain.Lam
 		"success": true,
 		"results": results,
 	})
+	return domain.LambdaResponse{
+		StatusCode: 200,
+		Body:       string(body),
+	}, nil
+}
+
+// handleGeocodeMunicipalitiesBatch handles geocode-municipalities-batch operation.
+func (a *App) handleGeocodeMunicipalitiesBatch(_ context.Context, event domain.LambdaEvent) (domain.LambdaResponse, error) {
+	var requestBody domain.RequestBody
+	if err := json.Unmarshal([]byte(event.Body), &requestBody); err != nil {
+		a.logger.Error("Failed to parse request body", err, map[string]interface{}{
+			"body": event.Body,
+		})
+		body, _ := json.Marshal(map[string]interface{}{
+			"success": false,
+			"error":   "Invalid JSON in request body",
+		})
+		return domain.LambdaResponse{
+			StatusCode: 400,
+			Body:       string(body),
+		}, nil
+	}
+
+	if len(requestBody.Municipalities) == 0 {
+		body, _ := json.Marshal(map[string]interface{}{
+			"success": false,
+			"error":   "municipalities field is required and must not be empty",
+		})
+		return domain.LambdaResponse{
+			StatusCode: 400,
+			Body:       string(body),
+		}, nil
+	}
+
+	a.logger.Info("Batch geocoding municipalities", map[string]interface{}{
+		"count": len(requestBody.Municipalities),
+	})
+
+	results := a.service.GeocodeByMunicipalitiesBatch(requestBody.Municipalities)
+
+	foundCount := 0
+	for _, result := range results {
+		if result != nil && result.Found {
+			foundCount++
+		}
+	}
+
+	response := domain.BatchGeocodingResponse{
+		Success: true,
+		Results: results,
+		Count:   foundCount,
+	}
+
+	body, _ := json.Marshal(response)
 	return domain.LambdaResponse{
 		StatusCode: 200,
 		Body:       string(body),
